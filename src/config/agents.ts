@@ -53,7 +53,7 @@ export const AGENTS: AgentConfig[] = [
     name: 'Writer',
     role: 'Content Creator',
     color: '#78350F',
-    position: { x: 5, y: 12 },
+    position: { x: 3, y: 12 },
     workstation: '寫作間'
   },
   {
