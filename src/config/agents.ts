@@ -13,7 +13,7 @@ export const AGENTS: AgentConfig[] = [
     name: 'Travis',
     role: 'System Coordinator',
     color: '#1E3A8A',
-    position: { x: 10, y: 3 },
+    position: { x: 10, y: 1 },
     workstation: '指揮中心'
   },
   {
@@ -21,15 +21,15 @@ export const AGENTS: AgentConfig[] = [
     name: 'Researcher',
     role: 'Data Analyst',
     color: '#0E7490',
-    position: { x: 7, y: 5 },
+    position: { x: 5, y: 4 },
     workstation: '數據牆'
   },
   {
     id: 'inspector',
     name: 'Inspector',
     role: 'Quality Assurance',
-    color: '#000000',
-    position: { x: 13, y: 5 },
+    color: '#1a1a1a',
+    position: { x: 15, y: 4 },
     workstation: '品管室'
   },
   {
@@ -37,7 +37,7 @@ export const AGENTS: AgentConfig[] = [
     name: 'Secretary',
     role: 'Office Manager',
     color: '#92400E',
-    position: { x: 5, y: 8 },
+    position: { x: 3, y: 8 },
     workstation: '接待區'
   },
   {
@@ -45,7 +45,7 @@ export const AGENTS: AgentConfig[] = [
     name: 'Coder',
     role: 'Software Engineer',
     color: '#10B981',
-    position: { x: 15, y: 8 },
+    position: { x: 17, y: 8 },
     workstation: '實驗室'
   },
   {
@@ -53,7 +53,7 @@ export const AGENTS: AgentConfig[] = [
     name: 'Writer',
     role: 'Content Creator',
     color: '#78350F',
-    position: { x: 7, y: 11 },
+    position: { x: 5, y: 12 },
     workstation: '寫作間'
   },
   {
@@ -61,7 +61,7 @@ export const AGENTS: AgentConfig[] = [
     name: 'Designer',
     role: 'UI/UX Designer',
     color: '#8B5CF6',
-    position: { x: 13, y: 11 },
+    position: { x: 15, y: 12 },
     workstation: '工作室'
   },
   {
@@ -69,7 +69,7 @@ export const AGENTS: AgentConfig[] = [
     name: 'Analyst',
     role: 'Financial Analyst',
     color: '#B45309',
-    position: { x: 10, y: 14 },
+    position: { x: 10, y: 16 },
     workstation: '交易室'
   }
 ]
