@@ -385,7 +385,7 @@ export class OfficeScene extends Phaser.Scene {
       container.add(shadow)
 
       // Character image (larger: 110px)
-      const imageKey = `${agent.id}-male`
+      const imageKey = `${agent.id}-hq`
       const sprite = this.add.image(0, 0, imageKey)
       sprite.setDisplaySize(110, 110)
       sprite.setInteractive({ useHandCursor: true })
@@ -602,7 +602,7 @@ export class OfficeScene extends Phaser.Scene {
 
   private showPortrait(agent: AgentConfig) {
     this.portraitImage?.destroy()
-    const imageKey = `${agent.id}-male`
+    const imageKey = `${agent.id}-hq`
     const camH = this.cameras.main.height
     const portrait = this.add.image(-80, camH - 100, imageKey)
       .setDisplaySize(180, 180)

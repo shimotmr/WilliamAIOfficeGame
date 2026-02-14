@@ -57,6 +57,7 @@ export class BootScene extends Phaser.Scene {
     for (const id of agentIds) {
       this.load.image(`${id}-male`, `agents/${id}-male.jpg`)
       this.load.image(`${id}-female`, `agents/${id}-female.jpg`)
+      this.load.image(`${id}-hq`, `agents/${id}.jpg`)
     }
 
     // 載入所有 Kenney furniture 素材
