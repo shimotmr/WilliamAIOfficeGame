@@ -58,6 +58,24 @@ export class BootScene extends Phaser.Scene {
       this.load.image(`${id}-male`, `agents/${id}-male.jpg`)
       this.load.image(`${id}-female`, `agents/${id}-female.jpg`)
     }
+
+    // 載入所有 Kenney furniture 素材
+    const furnitureList = [
+      'desk_SE', 'deskCorner_SE', 'chairDesk_SE', 'chair_SE',
+      'chairModernCushion_SE', 'chairRounded_SE', 'computerScreen_SE',
+      'computerKeyboard_SE', 'computerMouse_SE', 'bookcaseOpen_SE',
+      'bookcaseClosedWide_SE', 'bookcaseClosed_SE', 'books_SE',
+      'lampRoundTable_SE', 'lampSquareFloor_SE', 'lampRoundFloor_SE',
+      'plantSmall1_SE', 'plantSmall2_SE', 'plantSmall3_SE', 'pottedPlant_SE',
+      'tableCoffee_SE', 'tableCoffeeSquare_SE', 'tableRound_SE', 'table_SE',
+      'loungeChair_SE', 'loungeSofa_SE', 'loungeSofaCorner_SE',
+      'kitchenCoffeeMachine_SE', 'kitchenCabinet_SE',
+      'cabinetTelevision_SE', 'cabinetTelevisionDoors_SE',
+      'sideTable_SE', 'sideTableDrawers_SE'
+    ]
+    furnitureList.forEach(name => {
+      this.load.image(name, `furniture/${name}.png`)
+    })
   }
 
   create() {

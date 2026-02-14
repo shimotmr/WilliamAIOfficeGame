@@ -3,9 +3,9 @@ import { AGENTS, AgentConfig } from '../config/agents'
 import {
   drawTravisDecorations, drawResearcherDecorations, drawInspectorDecorations,
   drawSecretaryDecorations, drawCoderDecorations, drawWriterDecorations,
-  drawDesignerDecorations, drawAnalystDecorations, drawPlant, drawWalls,
-  drawCopier, drawWaterCooler, drawWhiteboard, drawConferenceTable,
-  drawTeaArea, drawPartition, drawTrashCan, drawSmallPlant
+  drawDesignerDecorations, drawAnalystDecorations, drawWalls,
+  drawConferenceTable, drawPartition,
+  drawLoungeArea, drawKitchenArea, drawEntranceArea, drawPottedPlantDecor
 } from './WorkstationDecorations'
 import { getRandomDialogue, getStatusInfo } from '../config/dialogues'
 
@@ -172,47 +172,36 @@ export class OfficeScene extends Phaser.Scene {
 
   // ─── Common area objects ───────────────────────────────
   private createCommonAreaObjects() {
-    // Copier (between Inspector and Coder, roughly grid 14,6)
-    const copierPos = this.isoToScreen(14, 6)
-    drawCopier(this, copierPos.x, copierPos.y)
-
-    // Water cooler (near Secretary area, grid 6,14)
-    const wcPos = this.isoToScreen(6, 14)
-    drawWaterCooler(this, wcPos.x, wcPos.y)
-
-    // Whiteboard (between Travis and Inspector, grid 8,3)
-    const wbPos = this.isoToScreen(8, 3)
-    drawWhiteboard(this, wbPos.x, wbPos.y)
-
-    // Conference table (center area between Travis and Analyst, grid 12,12)
+    // Conference table (center area, grid 12,12)
     const ctPos = this.isoToScreen(12, 12)
     drawConferenceTable(this, ctPos.x, ctPos.y)
 
-    // Tea area (between Writer and Secretary, grid 9,20)
-    const taPos = this.isoToScreen(9, 20)
-    drawTeaArea(this, taPos.x, taPos.y)
-  }
+    // Lounge / rest area (grid 6,14)
+    const loungePos = this.isoToScreen(6, 14)
+    drawLoungeArea(this, loungePos.x, loungePos.y)
 
-  // ─── Floor details (small plants, trash cans) ──────────
-  private createFloorDetails() {
-    // Small potted plants scattered
-    const smallPlantPositions = [
+    // Kitchen / tea area (grid 9,20)
+    const kitchenPos = this.isoToScreen(9, 20)
+    drawKitchenArea(this, kitchenPos.x, kitchenPos.y)
+
+    // Entrance area (grid 1,12)
+    const entrancePos = this.isoToScreen(1, 12)
+    drawEntranceArea(this, entrancePos.x, entrancePos.y)
+
+    // Potted plants scattered along walkways
+    const plantPositions = [
       { x: 6, y: 6 }, { x: 18, y: 4 }, { x: 4, y: 18 },
       { x: 20, y: 18 }, { x: 14, y: 14 }, { x: 10, y: 10 },
     ]
-    smallPlantPositions.forEach(p => {
+    plantPositions.forEach(p => {
       const pos = this.isoToScreen(p.x, p.y)
-      drawSmallPlant(this, pos.x, pos.y)
+      drawPottedPlantDecor(this, pos.x, pos.y)
     })
+  }
 
-    // Trash cans
-    const trashPositions = [
-      { x: 5, y: 5 }, { x: 15, y: 10 }, { x: 10, y: 18 }, { x: 20, y: 20 },
-    ]
-    trashPositions.forEach(p => {
-      const pos = this.isoToScreen(p.x, p.y)
-      drawTrashCan(this, pos.x, pos.y)
-    })
+  // ─── Floor details (now handled by common area potted plants) ──
+  private createFloorDetails() {
+    // Moved to createCommonAreaObjects with Kenney assets
   }
 
   // ─── Ceiling lights (elliptical glow above workstations) ─
@@ -239,7 +228,7 @@ export class OfficeScene extends Phaser.Scene {
     drawWalls(this, this.isoToScreen.bind(this), this.MAP_WIDTH)
   }
 
-  // ─── Corner plants ─────────────────────────────────────
+  // ─── Corner plants (using Kenney pottedPlant) ──────────
   private createPlants() {
     const corners = [
       { x: 1, y: 1 }, { x: 24, y: 1 }, { x: 1, y: 24 },
@@ -247,7 +236,7 @@ export class OfficeScene extends Phaser.Scene {
     ]
     corners.forEach(c => {
       const pos = this.isoToScreen(c.x, c.y)
-      drawPlant(this, pos.x, pos.y)
+      drawPottedPlantDecor(this, pos.x, pos.y)
     })
   }
 
@@ -853,7 +842,7 @@ export class OfficeScene extends Phaser.Scene {
 
   // ─── Title ─────────────────────────────────────────────
   private addTitle() {
-    this.add.text(640, 30, 'William AI Office - Phase 4', {
+    this.add.text(640, 30, 'William AI Office - Phase 5', {
       fontSize: '24px',
       fontStyle: 'bold',
       color: '#ffffff',
