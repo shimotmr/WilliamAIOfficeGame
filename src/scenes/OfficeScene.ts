@@ -5,17 +5,7 @@ import {
   drawSecretaryDecorations, drawCoderDecorations, drawWriterDecorations,
   drawDesignerDecorations, drawAnalystDecorations, drawPlant, drawWalls
 } from './WorkstationDecorations'
-
-const DIALOGUES: Record<string, string> = {
-  travis: '歡迎來到指揮中心。我是 Travis，負責協調所有 Agent 的工作。有什麼需要我安排的嗎？',
-  researcher: '嗯...讓我查一下。我是 Researcher，專門負責資料蒐集和深度研究。需要調查什麼？',
-  inspector: '品質就是生命。我是 Inspector，所有上線的東西都要經過我的審查。',
-  secretary: '早安！我是 Secretary，負責郵件管理和行程安排。今天有什麼重要的事嗎？',
-  coder: '啊，你來了。我是 Coder，正在寫程式...等一下，這個 bug 快修好了。',
-  writer: '文字是有力量的。我是 Writer，負責撰寫報告和內容創作。',
-  designer: '美感很重要呢。我是 Designer，負責 UI/UX 設計和視覺審查。',
-  analyst: '數字不會騙人。我是 Analyst，專門做財務分析和市場研究。',
-}
+import { getRandomDialogue, getStatusInfo } from '../config/dialogues'
 
 const DECORATION_MAP: Record<string, (scene: Phaser.Scene, x: number, y: number) => Phaser.GameObjects.Graphics> = {
   travis: drawTravisDecorations,
@@ -36,7 +26,7 @@ export class OfficeScene extends Phaser.Scene {
   private readonly MAP_WIDTH = 26
   private readonly MAP_HEIGHT = 26
 
-  // Dialogue system
+  // Dialogue system (Persona 5 style)
   private dialogueBox?: Phaser.GameObjects.Container
   private dialogueNameText?: Phaser.GameObjects.Text
   private dialogueBodyText?: Phaser.GameObjects.Text
@@ -44,6 +34,12 @@ export class OfficeScene extends Phaser.Scene {
   private typewriterTimer?: Phaser.Time.TimerEvent
   private fullDialogueText = ''
   private currentCharIndex = 0
+  private dialoguePhase: 'typing' | 'options' | 'status' = 'typing'
+  private currentAgent?: AgentConfig
+  private optionButtons: Phaser.GameObjects.Container[] = []
+  private portraitImage?: Phaser.GameObjects.Image
+  private dialogueNameBg?: Phaser.GameObjects.Graphics
+  private continueHint?: Phaser.GameObjects.Text
 
   // Floating particle objects
   private travisParticles: { x: number; y: number; vy: number; alpha: number; obj: Phaser.GameObjects.Arc }[] = []
@@ -281,37 +277,70 @@ export class OfficeScene extends Phaser.Scene {
     })
   }
 
-  // ─── Dialogue ──────────────────────────────────────────
+  // ─── Dialogue (Persona 5 Style) ─────────────────────────
   private createDialogueBox() {
     const w = this.cameras.main.width
-    const h = this.cameras.main.height
-    const boxH = 180
-    const boxY = h - boxH
+    const boxH = 160
 
-    const container = this.add.container(0, boxY).setScrollFactor(0).setDepth(1000).setVisible(false)
+    // Container starts off-screen (below), will slide in
+    const container = this.add.container(0, this.cameras.main.height)
+      .setScrollFactor(0).setDepth(2000).setVisible(false)
 
-    const bg = this.add.rectangle(w / 2, boxH / 2, w - 40, boxH - 20, 0x000000, 0.8)
-    bg.setStrokeStyle(2, 0x4488ff)
+    // Main background - black with red skewed border (Persona 5 style)
+    const bg = this.add.graphics()
+    // Black semi-transparent fill
+    bg.fillStyle(0x000000, 0.85)
+    bg.fillRect(20, 0, w - 40, boxH)
+    // Red border lines (skewed Persona 5 style)
+    bg.lineStyle(3, 0xDD0000, 1)
+    bg.beginPath()
+    bg.moveTo(15, boxH)
+    bg.lineTo(25, 0)
+    bg.lineTo(w - 15, 0)
+    bg.lineTo(w - 25, boxH)
+    bg.closePath()
+    bg.strokePath()
+    // Inner accent line
+    bg.lineStyle(1, 0xFF3333, 0.5)
+    bg.beginPath()
+    bg.moveTo(30, boxH - 5)
+    bg.lineTo(38, 5)
+    bg.lineTo(w - 30, 5)
+    bg.lineTo(w - 38, boxH - 5)
+    bg.closePath()
+    bg.strokePath()
 
-    const nameBg = this.add.rectangle(100, 8, 160, 30, 0x1E3A8A, 0.9)
-    const nameText = this.add.text(100, 8, '', {
+    // Name plate - skewed tag with agent color
+    const nameBg = this.add.graphics()
+    this.dialogueNameBg = nameBg
+
+    const nameText = this.add.text(80, -8, '', {
       fontSize: '16px',
+      fontFamily: '"Noto Sans TC", "Microsoft JhengHei", sans-serif',
       fontStyle: 'bold',
       color: '#ffffff',
+      shadow: { offsetX: 2, offsetY: 2, color: '#000000', blur: 4, fill: true }
     }).setOrigin(0.5)
 
-    const bodyText = this.add.text(40, 35, '', {
-      fontSize: '16px',
+    // Body text - larger, bold, with shadow
+    const bodyText = this.add.text(200, 25, '', {
+      fontSize: '20px',
+      fontFamily: '"Noto Sans TC", "Microsoft JhengHei", sans-serif',
+      fontStyle: 'bold',
       color: '#ffffff',
-      wordWrap: { width: w - 120 },
-      lineSpacing: 8
+      wordWrap: { width: w - 280 },
+      lineSpacing: 10,
+      shadow: { offsetX: 1, offsetY: 1, color: '#000000', blur: 3, fill: true }
     })
 
+    // Continue hint - blinking triangle
     const hint = this.add.text(w - 60, boxH - 30, '▼', {
-      fontSize: '14px',
-      color: '#aaaaaa'
+      fontSize: '18px',
+      fontStyle: 'bold',
+      color: '#FF3333'
     }).setOrigin(0.5)
-    this.tweens.add({ targets: hint, alpha: 0.3, duration: 600, yoyo: true, repeat: -1 })
+    this.tweens.add({ targets: hint, alpha: 0.2, duration: 500, yoyo: true, repeat: -1 })
+    this.continueHint = hint
 
     container.add([bg, nameBg, nameText, bodyText, hint])
     this.dialogueBox = container
@@ -322,11 +351,14 @@ export class OfficeScene extends Phaser.Scene {
   private setupDialogueInput() {
     this.input.on('pointerdown', (_pointer: Phaser.Input.Pointer) => {
       if (!this.dialogueActive) return
-      this.advanceDialogue()
+      if (this.dialoguePhase === 'typing') {
+        this.advanceDialogue()
+      }
+      // options phase handled by button clicks
     })
 
     this.input.keyboard?.on('keydown-SPACE', () => {
-      if (this.dialogueActive) this.advanceDialogue()
+      if (this.dialogueActive && this.dialoguePhase === 'typing') this.advanceDialogue()
     })
 
     this.input.keyboard?.on('keydown-ESC', () => {
@@ -335,82 +367,305 @@ export class OfficeScene extends Phaser.Scene {
   }
 
   private onAgentClick(agent: AgentConfig) {
-    const text = DIALOGUES[agent.id]
-    if (!text) return
+    if (this.dialogueActive) return
 
     // Flash base plate highlight
-    const plate = this.basePlates.get(agent.id)
-    if (plate) {
-      const color = parseInt(agent.color.replace('#', ''), 16)
-      const pos = this.isoToScreen(agent.position.x, agent.position.y)
-      const w = this.TILE_WIDTH * 3
-      const h = this.TILE_HEIGHT * 3
-
-      // Create flash overlay
-      const flash = this.add.graphics()
-      flash.fillStyle(color, 0.4)
-      flash.beginPath()
-      flash.moveTo(pos.x, pos.y - h / 2)
-      flash.lineTo(pos.x + w / 2, pos.y)
-      flash.lineTo(pos.x, pos.y + h / 2)
-      flash.lineTo(pos.x - w / 2, pos.y)
-      flash.closePath()
-      flash.fillPath()
-
-      this.tweens.add({
-        targets: flash,
-        alpha: 0,
-        duration: 500,
-        onComplete: () => flash.destroy()
-      })
-    }
+    const color = parseInt(agent.color.replace('#', ''), 16)
+    const pos = this.isoToScreen(agent.position.x, agent.position.y)
+    const w = this.TILE_WIDTH * 3
+    const h = this.TILE_HEIGHT * 3
+    const flash = this.add.graphics()
+    flash.fillStyle(color, 0.4)
+    flash.beginPath()
+    flash.moveTo(pos.x, pos.y - h / 2)
+    flash.lineTo(pos.x + w / 2, pos.y)
+    flash.lineTo(pos.x, pos.y + h / 2)
+    flash.lineTo(pos.x - w / 2, pos.y)
+    flash.closePath()
+    flash.fillPath()
+    this.tweens.add({ targets: flash, alpha: 0, duration: 500, onComplete: () => flash.destroy() })
 
     // Camera pan to agent
     const screenPos = this.isoToScreen(agent.position.x, agent.position.y)
     this.cameras.main.pan(screenPos.x, screenPos.y, 600, 'Sine.easeInOut')
 
-    this.showDialogue(agent.name, text)
+    this.currentAgent = agent
+    const { text } = getRandomDialogue(agent.id)
+    this.showDialogue(agent, text)
   }
 
-  private showDialogue(name: string, text: string) {
+  private showDialogue(agent: AgentConfig, text: string) {
     if (!this.dialogueBox || !this.dialogueNameText || !this.dialogueBodyText) return
 
+    const camH = this.cameras.main.height
+    const boxH = 160
+
     this.dialogueActive = true
+    this.dialoguePhase = 'typing'
     this.dialogueBox.setVisible(true)
-    this.dialogueNameText.setText(name)
+    this.continueHint?.setVisible(true)
+
+    // Update name plate color
+    const color = parseInt(agent.color.replace('#', ''), 16)
+    this.dialogueNameBg?.clear()
+    this.dialogueNameBg?.fillStyle(color, 0.9)
+    // Skewed name plate shape
+    this.dialogueNameBg?.beginPath()
+    this.dialogueNameBg?.moveTo(35, -20)
+    this.dialogueNameBg?.lineTo(155, -20)
+    this.dialogueNameBg?.lineTo(148, 5)
+    this.dialogueNameBg?.lineTo(42, 5)
+    this.dialogueNameBg?.closePath()
+    this.dialogueNameBg?.fillPath()
+
+    this.dialogueNameText.setText(agent.name)
     this.dialogueBodyText.setText('')
     this.fullDialogueText = text
     this.currentCharIndex = 0
 
+    // Slide-in animation from bottom
+    this.dialogueBox.setY(camH + 20)
+    this.tweens.add({
+      targets: this.dialogueBox,
+      y: camH - boxH,
+      duration: 200,
+      ease: 'Back.easeOut'
+    })
+
+    // Show portrait - slide in from left
+    this.showPortrait(agent)
+
+    // Start typewriter
     this.typewriterTimer?.destroy()
     this.typewriterTimer = this.time.addEvent({
-      delay: 40,
+      delay: 35,
       callback: () => {
         if (this.currentCharIndex < this.fullDialogueText.length) {
           this.currentCharIndex++
           this.dialogueBodyText?.setText(this.fullDialogueText.substring(0, this.currentCharIndex))
         } else {
           this.typewriterTimer?.destroy()
+          this.onTypewriterComplete()
         }
       },
       loop: true
     })
   }
 
+  private showPortrait(agent: AgentConfig) {
+    this.portraitImage?.destroy()
+    const imageKey = `${agent.id}-male`
+    const camH = this.cameras.main.height
+    const portrait = this.add.image(-80, camH - 100, imageKey)
+      .setDisplaySize(180, 180)
+      .setScrollFactor(0)
+      .setDepth(2001)
+      .setAlpha(0.95)
+
+    // Slide in from left
+    this.tweens.add({
+      targets: portrait,
+      x: 110,
+      duration: 300,
+      ease: 'Back.easeOut'
+    })
+    this.portraitImage = portrait
+  }
+
+  private onTypewriterComplete() {
+    this.dialoguePhase = 'options'
+    this.continueHint?.setVisible(false)
+    this.showOptions()
+  }
+
+  private showOptions() {
+    if (!this.currentAgent) return
+    this.clearOptions()
+
+    const camW = this.cameras.main.width
+    const camH = this.cameras.main.height
+    const options = [
+      { label: '了解更多', action: 'more' },
+      { label: '查看工作狀態', action: 'status' },
+      { label: '離開', action: 'leave' },
+    ]
+
+    options.forEach((opt, i) => {
+      const btnW = 200
+      const btnH = 40
+      const startX = camW - 260
+      const startY = camH - 180 - (options.length - i) * 50
+
+      const container = this.add.container(startX + 300, startY)
+        .setScrollFactor(0).setDepth(2002)
+
+      // Skewed red button background
+      const bg = this.add.graphics()
+      bg.fillStyle(0xCC0000, 0.9)
+      bg.beginPath()
+      bg.moveTo(8, 0)
+      bg.lineTo(btnW, 0)
+      bg.lineTo(btnW - 8, btnH)
+      bg.lineTo(0, btnH)
+      bg.closePath()
+      bg.fillPath()
+      // Border
+      bg.lineStyle(2, 0xFF4444, 1)
+      bg.beginPath()
+      bg.moveTo(8, 0)
+      bg.lineTo(btnW, 0)
+      bg.lineTo(btnW - 8, btnH)
+      bg.lineTo(0, btnH)
+      bg.closePath()
+      bg.strokePath()
+
+      const label = this.add.text(btnW / 2, btnH / 2, opt.label, {
+        fontSize: '16px',
+        fontFamily: '"Noto Sans TC", "Microsoft JhengHei", sans-serif',
+        fontStyle: 'bold',
+        color: '#ffffff',
+        shadow: { offsetX: 1, offsetY: 1, color: '#000000', blur: 2, fill: true }
+      }).setOrigin(0.5)
+
+      // Hit area
+      const hitZone = this.add.rectangle(btnW / 2, btnH / 2, btnW, btnH, 0x000000, 0)
+        .setInteractive({ useHandCursor: true })
+
+      hitZone.on('pointerover', () => {
+        container.setScale(1.08)
+        bg.clear()
+        bg.fillStyle(0xFF2222, 1)
+        bg.beginPath(); bg.moveTo(8, 0); bg.lineTo(btnW, 0); bg.lineTo(btnW - 8, btnH); bg.lineTo(0, btnH); bg.closePath()
+        bg.fillPath()
+        bg.lineStyle(2, 0xFFAAAA, 1)
+        bg.beginPath(); bg.moveTo(8, 0); bg.lineTo(btnW, 0); bg.lineTo(btnW - 8, btnH); bg.lineTo(0, btnH); bg.closePath()
+        bg.strokePath()
+      })
+      hitZone.on('pointerout', () => {
+        container.setScale(1)
+        bg.clear()
+        bg.fillStyle(0xCC0000, 0.9)
+        bg.beginPath(); bg.moveTo(8, 0); bg.lineTo(btnW, 0); bg.lineTo(btnW - 8, btnH); bg.lineTo(0, btnH); bg.closePath()
+        bg.fillPath()
+        bg.lineStyle(2, 0xFF4444, 1)
+        bg.beginPath(); bg.moveTo(8, 0); bg.lineTo(btnW, 0); bg.lineTo(btnW - 8, btnH); bg.lineTo(0, btnH); bg.closePath()
+        bg.strokePath()
+      })
+      hitZone.on('pointerdown', () => this.onOptionSelect(opt.action))
+
+      container.add([bg, label, hitZone])
+
+      // Slide in from right
+      this.tweens.add({
+        targets: container,
+        x: startX,
+        duration: 200,
+        delay: i * 80,
+        ease: 'Back.easeOut'
+      })
+
+      this.optionButtons.push(container)
+    })
+  }
+
+  private clearOptions() {
+    this.optionButtons.forEach(btn => btn.destroy())
+    this.optionButtons = []
+  }
+
+  private onOptionSelect(action: string) {
+    if (!this.currentAgent) return
+    this.clearOptions()
+
+    if (action === 'leave') {
+      this.closeDialogue()
+    } else if (action === 'more') {
+      const { text } = getRandomDialogue(this.currentAgent.id)
+      this.dialoguePhase = 'typing'
+      this.continueHint?.setVisible(true)
+      this.dialogueBodyText?.setText('')
+      this.fullDialogueText = text
+      this.currentCharIndex = 0
+      this.typewriterTimer?.destroy()
+      this.typewriterTimer = this.time.addEvent({
+        delay: 35,
+        callback: () => {
+          if (this.currentCharIndex < this.fullDialogueText.length) {
+            this.currentCharIndex++
+            this.dialogueBodyText?.setText(this.fullDialogueText.substring(0, this.currentCharIndex))
+          } else {
+            this.typewriterTimer?.destroy()
+            this.onTypewriterComplete()
+          }
+        },
+        loop: true
+      })
+    } else if (action === 'status') {
+      this.dialoguePhase = 'status'
+      this.continueHint?.setVisible(true)
+      const status = getStatusInfo(this.currentAgent.id)
+      this.dialogueBodyText?.setText('')
+      this.fullDialogueText = status
+      this.currentCharIndex = 0
+      this.typewriterTimer?.destroy()
+      this.typewriterTimer = this.time.addEvent({
+        delay: 20,
+        callback: () => {
+          if (this.currentCharIndex < this.fullDialogueText.length) {
+            this.currentCharIndex++
+            this.dialogueBodyText?.setText(this.fullDialogueText.substring(0, this.currentCharIndex))
+          } else {
+            this.typewriterTimer?.destroy()
+            this.dialoguePhase = 'options'
+            this.continueHint?.setVisible(false)
+            this.showOptions()
+          }
+        },
+        loop: true
+      })
+    }
+  }
+
   private advanceDialogue() {
     if (this.currentCharIndex < this.fullDialogueText.length) {
+      // Skip to end
       this.typewriterTimer?.destroy()
       this.currentCharIndex = this.fullDialogueText.length
       this.dialogueBodyText?.setText(this.fullDialogueText)
-    } else {
-      this.closeDialogue()
+      this.onTypewriterComplete()
     }
   }
 
   private closeDialogue() {
     this.typewriterTimer?.destroy()
-    this.dialogueActive = false
-    this.dialogueBox?.setVisible(false)
+    this.clearOptions()
+
+    const camH = this.cameras.main.height
+    // Slide out animation
+    if (this.dialogueBox) {
+      this.tweens.add({
+        targets: this.dialogueBox,
+        y: camH + 20,
+        duration: 200,
+        ease: 'Cubic.easeIn',
+        onComplete: () => {
+          this.dialogueBox?.setVisible(false)
+          this.dialogueActive = false
+          this.dialoguePhase = 'typing'
+        }
+      })
+    }
+    // Portrait slide out
+    if (this.portraitImage) {
+      this.tweens.add({
+        targets: this.portraitImage,
+        x: -100,
+        duration: 250,
+        ease: 'Cubic.easeIn',
+        onComplete: () => { this.portraitImage?.destroy(); this.portraitImage = undefined }
+      })
+    }
+    this.currentAgent = undefined
   }
 
   // ─── Camera ────────────────────────────────────────────
@@ -454,7 +709,7 @@ export class OfficeScene extends Phaser.Scene {
 
   // ─── Title ─────────────────────────────────────────────
   private addTitle() {
-    this.add.text(640, 30, 'William AI Office - Phase 2', {
+    this.add.text(640, 30, 'William AI Office - Phase 3', {
       fontSize: '24px',
       fontStyle: 'bold',
       color: '#ffffff',
