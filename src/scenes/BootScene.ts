@@ -52,8 +52,12 @@ export class BootScene extends Phaser.Scene {
       percentText.destroy()
     })
 
-    // Phase 0: 暫時沒有需要載入的資源
-    // 未來在這裡載入：角色 sprites, 音效, Live2D 模型等
+    // 載入角色立繪
+    const agentIds = ['travis', 'researcher', 'inspector', 'secretary', 'coder', 'writer', 'designer', 'analyst']
+    for (const id of agentIds) {
+      this.load.image(`${id}-male`, `agents/${id}-male.jpg`)
+      this.load.image(`${id}-female`, `agents/${id}-female.jpg`)
+    }
   }
 
   create() {

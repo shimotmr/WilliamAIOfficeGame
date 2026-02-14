@@ -13,13 +13,7 @@ const config: Phaser.Types.Core.GameConfig = {
     autoCenter: Phaser.Scale.CENTER_BOTH
   },
   scene: [BootScene, OfficeScene],
-  physics: {
-    default: 'arcade',
-    arcade: {
-      gravity: { x: 0, y: 0 },
-      debug: false
-    }
-  }
+  physics: {}
 }
 
 new Phaser.Game(config)
