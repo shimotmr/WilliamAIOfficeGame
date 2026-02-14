@@ -86,7 +86,7 @@ export class BootScene extends Phaser.Scene {
   }
 
   create() {
-    // 載入完成，直接轉場（fade 由 OfficeScene 處理）
+    console.log('[BootScene] create() - all assets loaded, starting OfficeScene')
     this.scene.start('OfficeScene')
   }
 }
