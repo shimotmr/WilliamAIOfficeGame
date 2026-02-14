@@ -3,7 +3,9 @@ import { AGENTS, AgentConfig } from '../config/agents'
 import {
   drawTravisDecorations, drawResearcherDecorations, drawInspectorDecorations,
   drawSecretaryDecorations, drawCoderDecorations, drawWriterDecorations,
-  drawDesignerDecorations, drawAnalystDecorations, drawPlant, drawWalls
+  drawDesignerDecorations, drawAnalystDecorations, drawPlant, drawWalls,
+  drawCopier, drawWaterCooler, drawWhiteboard, drawConferenceTable,
+  drawTeaArea, drawPartition, drawTrashCan, drawSmallPlant
 } from './WorkstationDecorations'
 import { getRandomDialogue, getStatusInfo } from '../config/dialogues'
 
@@ -16,6 +18,18 @@ const DECORATION_MAP: Record<string, (scene: Phaser.Scene, x: number, y: number)
   writer: drawWriterDecorations,
   designer: drawDesignerDecorations,
   analyst: drawAnalystDecorations,
+}
+
+// Agent theme colors for carpets (very light alpha)
+const AGENT_CARPET_COLORS: Record<string, number> = {
+  travis: 0x1E3A8A,
+  researcher: 0x0E7490,
+  inspector: 0x444444,
+  secretary: 0x92400E,
+  coder: 0x10B981,
+  writer: 0x78350F,
+  designer: 0x8B5CF6,
+  analyst: 0xB45309,
 }
 
 export class OfficeScene extends Phaser.Scene {
@@ -52,9 +66,14 @@ export class OfficeScene extends Phaser.Scene {
   create() {
     this.cameras.main.setBackgroundColor('#1a1410')
     this.createIsometricFloor()
+    this.createCarpets()
     this.createWalls()
+    this.createPartitions()
     this.createPlants()
+    this.createFloorDetails()
+    this.createCeilingLights()
     this.createBasePlates()
+    this.createCommonAreaObjects()
     this.createDecorations()
     this.createWorkstationLabels()
     this.createAgents()
@@ -99,6 +118,122 @@ export class OfficeScene extends Phaser.Scene {
     }
   }
 
+  // ─── Carpets (agent theme color, very light) ───────────
+  private createCarpets() {
+    AGENTS.forEach((agent) => {
+      const pos = this.isoToScreen(agent.position.x, agent.position.y)
+      const g = this.add.graphics()
+      const color = AGENT_CARPET_COLORS[agent.id] || 0x888888
+      // 4x4 tile carpet area
+      const w = this.TILE_WIDTH * 4
+      const h = this.TILE_HEIGHT * 4
+      g.fillStyle(color, 0.08)
+      g.beginPath()
+      g.moveTo(pos.x, pos.y - h / 2)
+      g.lineTo(pos.x + w / 2, pos.y)
+      g.lineTo(pos.x, pos.y + h / 2)
+      g.lineTo(pos.x - w / 2, pos.y)
+      g.closePath()
+      g.fillPath()
+    })
+  }
+
+  // ─── Partition walls between workstations ──────────────
+  private createPartitions() {
+    // Draw partitions between nearby agents
+    const partitionPairs: [string, string][] = [
+      ['travis', 'inspector'],
+      ['travis', 'researcher'],
+      ['researcher', 'secretary'],
+      ['inspector', 'coder'],
+      ['coder', 'designer'],
+      ['secretary', 'writer'],
+      ['writer', 'analyst'],
+      ['designer', 'analyst'],
+    ]
+
+    partitionPairs.forEach(([a1id, a2id]) => {
+      const a1 = AGENTS.find(a => a.id === a1id)!
+      const a2 = AGENTS.find(a => a.id === a2id)!
+      const p1 = this.isoToScreen(a1.position.x, a1.position.y)
+      const p2 = this.isoToScreen(a2.position.x, a2.position.y)
+      // Midpoint partition
+      const mx = (p1.x + p2.x) / 2
+      const my = (p1.y + p2.y) / 2
+      // Perpendicular short wall
+      const dx = p2.x - p1.x
+      const dy = p2.y - p1.y
+      const len = Math.sqrt(dx * dx + dy * dy)
+      const nx = -dy / len * 30
+      const ny = dx / len * 30
+      drawPartition(this, mx - nx, my - ny, mx + nx, my + ny)
+    })
+  }
+
+  // ─── Common area objects ───────────────────────────────
+  private createCommonAreaObjects() {
+    // Copier (between Inspector and Coder, roughly grid 14,6)
+    const copierPos = this.isoToScreen(14, 6)
+    drawCopier(this, copierPos.x, copierPos.y)
+
+    // Water cooler (near Secretary area, grid 6,14)
+    const wcPos = this.isoToScreen(6, 14)
+    drawWaterCooler(this, wcPos.x, wcPos.y)
+
+    // Whiteboard (between Travis and Inspector, grid 8,3)
+    const wbPos = this.isoToScreen(8, 3)
+    drawWhiteboard(this, wbPos.x, wbPos.y)
+
+    // Conference table (center area between Travis and Analyst, grid 12,12)
+    const ctPos = this.isoToScreen(12, 12)
+    drawConferenceTable(this, ctPos.x, ctPos.y)
+
+    // Tea area (between Writer and Secretary, grid 9,20)
+    const taPos = this.isoToScreen(9, 20)
+    drawTeaArea(this, taPos.x, taPos.y)
+  }
+
+  // ─── Floor details (small plants, trash cans) ──────────
+  private createFloorDetails() {
+    // Small potted plants scattered
+    const smallPlantPositions = [
+      { x: 6, y: 6 }, { x: 18, y: 4 }, { x: 4, y: 18 },
+      { x: 20, y: 18 }, { x: 14, y: 14 }, { x: 10, y: 10 },
+    ]
+    smallPlantPositions.forEach(p => {
+      const pos = this.isoToScreen(p.x, p.y)
+      drawSmallPlant(this, pos.x, pos.y)
+    })
+
+    // Trash cans
+    const trashPositions = [
+      { x: 5, y: 5 }, { x: 15, y: 10 }, { x: 10, y: 18 }, { x: 20, y: 20 },
+    ]
+    trashPositions.forEach(p => {
+      const pos = this.isoToScreen(p.x, p.y)
+      drawTrashCan(this, pos.x, pos.y)
+    })
+  }
+
+  // ─── Ceiling lights (elliptical glow above workstations) ─
+  private createCeilingLights() {
+    AGENTS.forEach((agent) => {
+      const pos = this.isoToScreen(agent.position.x, agent.position.y)
+      const g = this.add.graphics()
+      g.fillStyle(0xFFFFFF, 0.05)
+      // Ellipse glow
+      g.beginPath()
+      for (let a = 0; a < Math.PI * 2; a += 0.1) {
+        const ex = pos.x + Math.cos(a) * 60
+        const ey = pos.y - 20 + Math.sin(a) * 25
+        if (a === 0) g.moveTo(ex, ey)
+        else g.lineTo(ex, ey)
+      }
+      g.closePath()
+      g.fillPath()
+    })
+  }
+
   // ─── Walls ─────────────────────────────────────────────
   private createWalls() {
     drawWalls(this, this.isoToScreen.bind(this), this.MAP_WIDTH)
@@ -107,12 +242,8 @@ export class OfficeScene extends Phaser.Scene {
   // ─── Corner plants ─────────────────────────────────────
   private createPlants() {
     const corners = [
-      { x: 1, y: 1 },
-      { x: 24, y: 1 },
-      { x: 1, y: 24 },
-      { x: 24, y: 24 },
-      { x: 12, y: 0 },
-      { x: 0, y: 12 },
+      { x: 1, y: 1 }, { x: 24, y: 1 }, { x: 1, y: 24 },
+      { x: 24, y: 24 }, { x: 12, y: 0 }, { x: 0, y: 12 },
     ]
     corners.forEach(c => {
       const pos = this.isoToScreen(c.x, c.y)
@@ -126,7 +257,6 @@ export class OfficeScene extends Phaser.Scene {
       const pos = this.isoToScreen(agent.position.x, agent.position.y)
       const g = this.add.graphics()
       const color = parseInt(agent.color.replace('#', ''), 16)
-      // 3×3 tile diamond
       const w = this.TILE_WIDTH * 3
       const h = this.TILE_HEIGHT * 3
       g.fillStyle(color, 0.15)
@@ -137,7 +267,6 @@ export class OfficeScene extends Phaser.Scene {
       g.lineTo(pos.x - w / 2, pos.y)
       g.closePath()
       g.fillPath()
-      // Thin border
       g.lineStyle(1, color, 0.3)
       g.strokePath()
       this.basePlates.set(agent.id, g)
@@ -153,13 +282,13 @@ export class OfficeScene extends Phaser.Scene {
     })
   }
 
-  // ─── Workstation labels (moved from old createWorkstations) ─
+  // ─── Workstation labels ────────────────────────────────
   private createWorkstationLabels() {
     AGENTS.forEach((agent) => {
       const screenPos = this.isoToScreen(agent.position.x, agent.position.y)
       this.add.text(
         screenPos.x,
-        screenPos.y + 60,
+        screenPos.y + 70,
         agent.workstation,
         {
           fontSize: '12px',
@@ -238,15 +367,38 @@ export class OfficeScene extends Phaser.Scene {
     })
   }
 
-  // ─── Agents ────────────────────────────────────────────
+  // ─── Agents (with idle animation, shadow, glow) ────────
   private createAgents() {
-    AGENTS.forEach((agent) => {
+    AGENTS.forEach((agent, index) => {
       const screenPos = this.isoToScreen(agent.position.x, agent.position.y)
       const container = this.add.container(screenPos.x, screenPos.y - 20)
+      const color = parseInt(agent.color.replace('#', ''), 16)
 
+      // Glow (behind character, breathing effect)
+      const glow = this.add.graphics()
+      glow.fillStyle(color, 0.1)
+      glow.fillCircle(0, 10, 65)
+      container.add(glow)
+      // Breathing tween on glow
+      this.tweens.add({
+        targets: glow,
+        alpha: { from: 0.5, to: 1.5 },
+        duration: 3000,
+        yoyo: true,
+        repeat: -1,
+        delay: index * 400,
+      })
+
+      // Shadow (ellipse under feet)
+      const shadow = this.add.graphics()
+      shadow.fillStyle(0x000000, 0.3)
+      shadow.fillEllipse(0, 50, 50, 16)
+      container.add(shadow)
+
+      // Character image (larger: 110px)
       const imageKey = `${agent.id}-male`
       const sprite = this.add.image(0, 0, imageKey)
-      sprite.setDisplaySize(80, 80)
+      sprite.setDisplaySize(110, 110)
       sprite.setInteractive({ useHandCursor: true })
 
       sprite.on('pointerover', () => {
@@ -255,11 +407,11 @@ export class OfficeScene extends Phaser.Scene {
       })
       sprite.on('pointerout', () => {
         sprite.clearTint()
-        sprite.setDisplaySize(80, 80)
+        sprite.setDisplaySize(110, 110)
       })
       sprite.on('pointerdown', () => this.onAgentClick(agent))
 
-      const nameText = this.add.text(0, -50, agent.name, {
+      const nameText = this.add.text(0, -65, agent.name, {
         fontSize: '14px',
         fontStyle: 'bold',
         color: '#ffffff',
@@ -267,13 +419,36 @@ export class OfficeScene extends Phaser.Scene {
         strokeThickness: 3
       }).setOrigin(0.5)
 
-      const roleText = this.add.text(0, 48, agent.role, {
+      const roleText = this.add.text(0, 58, agent.role, {
         fontSize: '10px',
         color: '#cccccc'
       }).setOrigin(0.5)
 
       container.add([sprite, nameText, roleText])
       this.agents.set(agent.id, container)
+
+      // Idle floating animation (offset per agent to avoid sync)
+      this.tweens.add({
+        targets: container,
+        y: screenPos.y - 23,
+        duration: 2000,
+        yoyo: true,
+        repeat: -1,
+        ease: 'Sine.easeInOut',
+        delay: index * 250,
+      })
+
+      // Shadow scale sync with float
+      this.tweens.add({
+        targets: shadow,
+        scaleX: { from: 1, to: 0.9 },
+        scaleY: { from: 1, to: 0.85 },
+        duration: 2000,
+        yoyo: true,
+        repeat: -1,
+        ease: 'Sine.easeInOut',
+        delay: index * 250,
+      })
     })
   }
 
@@ -282,16 +457,12 @@ export class OfficeScene extends Phaser.Scene {
     const w = this.cameras.main.width
     const boxH = 160
 
-    // Container starts off-screen (below), will slide in
     const container = this.add.container(0, this.cameras.main.height)
       .setScrollFactor(0).setDepth(2000).setVisible(false)
 
-    // Main background - black with red skewed border (Persona 5 style)
     const bg = this.add.graphics()
-    // Black semi-transparent fill
     bg.fillStyle(0x000000, 0.85)
     bg.fillRect(20, 0, w - 40, boxH)
-    // Red border lines (skewed Persona 5 style)
     bg.lineStyle(3, 0xDD0000, 1)
     bg.beginPath()
     bg.moveTo(15, boxH)
@@ -300,7 +471,6 @@ export class OfficeScene extends Phaser.Scene {
     bg.lineTo(w - 25, boxH)
     bg.closePath()
     bg.strokePath()
-    // Inner accent line
     bg.lineStyle(1, 0xFF3333, 0.5)
     bg.beginPath()
     bg.moveTo(30, boxH - 5)
@@ -310,7 +480,6 @@ export class OfficeScene extends Phaser.Scene {
     bg.closePath()
     bg.strokePath()
 
-    // Name plate - skewed tag with agent color
     const nameBg = this.add.graphics()
     this.dialogueNameBg = nameBg
 
@@ -322,7 +491,6 @@ export class OfficeScene extends Phaser.Scene {
       shadow: { offsetX: 2, offsetY: 2, color: '#000000', blur: 4, fill: true }
     }).setOrigin(0.5)
 
-    // Body text - larger, bold, with shadow
     const bodyText = this.add.text(200, 25, '', {
       fontSize: '20px',
       fontFamily: '"Noto Sans TC", "Microsoft JhengHei", sans-serif',
@@ -333,7 +501,6 @@ export class OfficeScene extends Phaser.Scene {
       shadow: { offsetX: 1, offsetY: 1, color: '#000000', blur: 3, fill: true }
     })
 
-    // Continue hint - blinking triangle
     const hint = this.add.text(w - 60, boxH - 30, '▼', {
       fontSize: '18px',
       fontStyle: 'bold',
@@ -354,7 +521,6 @@ export class OfficeScene extends Phaser.Scene {
       if (this.dialoguePhase === 'typing') {
         this.advanceDialogue()
       }
-      // options phase handled by button clicks
     })
 
     this.input.keyboard?.on('keydown-SPACE', () => {
@@ -369,7 +535,6 @@ export class OfficeScene extends Phaser.Scene {
   private onAgentClick(agent: AgentConfig) {
     if (this.dialogueActive) return
 
-    // Flash base plate highlight
     const color = parseInt(agent.color.replace('#', ''), 16)
     const pos = this.isoToScreen(agent.position.x, agent.position.y)
     const w = this.TILE_WIDTH * 3
@@ -385,7 +550,6 @@ export class OfficeScene extends Phaser.Scene {
     flash.fillPath()
     this.tweens.add({ targets: flash, alpha: 0, duration: 500, onComplete: () => flash.destroy() })
 
-    // Camera pan to agent
     const screenPos = this.isoToScreen(agent.position.x, agent.position.y)
     this.cameras.main.pan(screenPos.x, screenPos.y, 600, 'Sine.easeInOut')
 
@@ -405,11 +569,9 @@ export class OfficeScene extends Phaser.Scene {
     this.dialogueBox.setVisible(true)
     this.continueHint?.setVisible(true)
 
-    // Update name plate color
     const color = parseInt(agent.color.replace('#', ''), 16)
     this.dialogueNameBg?.clear()
     this.dialogueNameBg?.fillStyle(color, 0.9)
-    // Skewed name plate shape
     this.dialogueNameBg?.beginPath()
     this.dialogueNameBg?.moveTo(35, -20)
     this.dialogueNameBg?.lineTo(155, -20)
@@ -423,7 +585,6 @@ export class OfficeScene extends Phaser.Scene {
     this.fullDialogueText = text
     this.currentCharIndex = 0
 
-    // Slide-in animation from bottom
     this.dialogueBox.setY(camH + 20)
     this.tweens.add({
       targets: this.dialogueBox,
@@ -432,10 +593,8 @@ export class OfficeScene extends Phaser.Scene {
       ease: 'Back.easeOut'
     })
 
-    // Show portrait - slide in from left
     this.showPortrait(agent)
 
-    // Start typewriter
     this.typewriterTimer?.destroy()
     this.typewriterTimer = this.time.addEvent({
       delay: 35,
@@ -462,7 +621,6 @@ export class OfficeScene extends Phaser.Scene {
       .setDepth(2001)
       .setAlpha(0.95)
 
-    // Slide in from left
     this.tweens.add({
       targets: portrait,
       x: 110,
@@ -499,23 +657,15 @@ export class OfficeScene extends Phaser.Scene {
       const container = this.add.container(startX + 300, startY)
         .setScrollFactor(0).setDepth(2002)
 
-      // Skewed red button background
       const bg = this.add.graphics()
       bg.fillStyle(0xCC0000, 0.9)
       bg.beginPath()
-      bg.moveTo(8, 0)
-      bg.lineTo(btnW, 0)
-      bg.lineTo(btnW - 8, btnH)
-      bg.lineTo(0, btnH)
+      bg.moveTo(8, 0); bg.lineTo(btnW, 0); bg.lineTo(btnW - 8, btnH); bg.lineTo(0, btnH)
       bg.closePath()
       bg.fillPath()
-      // Border
       bg.lineStyle(2, 0xFF4444, 1)
       bg.beginPath()
-      bg.moveTo(8, 0)
-      bg.lineTo(btnW, 0)
-      bg.lineTo(btnW - 8, btnH)
-      bg.lineTo(0, btnH)
+      bg.moveTo(8, 0); bg.lineTo(btnW, 0); bg.lineTo(btnW - 8, btnH); bg.lineTo(0, btnH)
       bg.closePath()
       bg.strokePath()
 
@@ -528,8 +678,6 @@ export class OfficeScene extends Phaser.Scene {
       }).setOrigin(0.5)
 
       container.add([bg, label])
-
-      // Set interactive on container itself
       container.setSize(btnW, btnH)
       container.setInteractive({ useHandCursor: true })
 
@@ -555,7 +703,6 @@ export class OfficeScene extends Phaser.Scene {
       })
       container.on('pointerdown', () => this.onOptionSelect(opt.action))
 
-      // Slide in from right
       this.tweens.add({
         targets: container,
         x: startX,
@@ -628,7 +775,6 @@ export class OfficeScene extends Phaser.Scene {
 
   private advanceDialogue() {
     if (this.currentCharIndex < this.fullDialogueText.length) {
-      // Skip to end
       this.typewriterTimer?.destroy()
       this.currentCharIndex = this.fullDialogueText.length
       this.dialogueBodyText?.setText(this.fullDialogueText)
@@ -641,7 +787,6 @@ export class OfficeScene extends Phaser.Scene {
     this.clearOptions()
 
     const camH = this.cameras.main.height
-    // Slide out animation
     if (this.dialogueBox) {
       this.tweens.add({
         targets: this.dialogueBox,
@@ -655,7 +800,6 @@ export class OfficeScene extends Phaser.Scene {
         }
       })
     }
-    // Portrait slide out
     if (this.portraitImage) {
       this.tweens.add({
         targets: this.portraitImage,
@@ -709,7 +853,7 @@ export class OfficeScene extends Phaser.Scene {
 
   // ─── Title ─────────────────────────────────────────────
   private addTitle() {
-    this.add.text(640, 30, 'William AI Office - Phase 3', {
+    this.add.text(640, 30, 'William AI Office - Phase 4', {
       fontSize: '24px',
       fontStyle: 'bold',
       color: '#ffffff',
