@@ -4,6 +4,7 @@ import { getRandomDialogue, getStatusInfo } from '../config/dialogues'
 
 export class OfficeScene extends Phaser.Scene {
   private agents: Map<string, Phaser.GameObjects.Container> = new Map()
+  private agentNameplates: Map<string, Phaser.GameObjects.Container> = new Map()
   private readonly TILE_WIDTH = 64
   private readonly TILE_HEIGHT = 32
   private readonly MAP_WIDTH = 16
@@ -25,7 +26,6 @@ export class OfficeScene extends Phaser.Scene {
   private continueHint?: Phaser.GameObjects.Text
   
   // Click counter for secret dialogues
-  // @ts-ignore - Used in onAgentClick but TS doesn't detect Map usage
   private agentClickCount: Map<string, number> = new Map()
 
   // Audio system
@@ -46,10 +46,12 @@ export class OfficeScene extends Phaser.Scene {
       // Set clean background color
       this.cameras.main.setBackgroundColor('#f0ebe3')
       
-      // Create simple scene
+      // Create scene
       this.createFloor()
       this.createWalls()
+      this.createSceneDecorations()
       this.createAgents()
+      this.createAgentNameplates()
       
       // UI & Systems
       this.setupCamera()
@@ -133,27 +135,118 @@ export class OfficeScene extends Phaser.Scene {
     graphics.setDepth(5)
   }
 
-  // ─── Agent positions (2 rows x 4 columns) ──────────────
-  private createAgents() {
-    // Fixed positions: 2 rows x 4 columns with spacing
-    const positions = [
-      // Row 1
-      { id: 'travis', x: 4, y: 4 },
-      { id: 'researcher', x: 7, y: 4 },
-      { id: 'inspector', x: 10, y: 4 },
-      { id: 'secretary', x: 13, y: 4 },
-      // Row 2
-      { id: 'coder', x: 4, y: 10 },
-      { id: 'writer', x: 7, y: 10 },
-      { id: 'designer', x: 10, y: 10 },
-      { id: 'analyst', x: 13, y: 10 }
-    ]
+  // ─── Scene Decorations ─────────────────────────────────
+  private createSceneDecorations() {
+    // Conference table in the middle
+    this.createConferenceTable(8, 8)
     
-    positions.forEach((pos, index) => {
-      const agent = AGENTS.find(a => a.id === pos.id)
-      if (!agent) return
-      
-      const screenPos = this.isoToScreen(pos.x, pos.y)
+    // Entrance door
+    this.createEntranceDoor(7, 1)
+    
+    // Plants in corners
+    this.createPlant(1, 1)
+    this.createPlant(14, 1)
+    this.createPlant(1, 14)
+    this.createPlant(14, 14)
+    
+    // Workstation decorations for each agent
+    AGENTS.forEach(agent => {
+      this.createWorkstation(agent)
+    })
+  }
+
+  private createConferenceTable(isoX: number, isoY: number) {
+    const pos = this.isoToScreen(isoX, isoY)
+    const graphics = this.add.graphics()
+    
+    // Large oval table
+    graphics.fillStyle(0x8B4513, 1)
+    graphics.fillEllipse(pos.x, pos.y, 120, 60)
+    graphics.lineStyle(2, 0x654321, 1)
+    graphics.strokeEllipse(pos.x, pos.y, 120, 60)
+    
+    graphics.setDepth(0)
+  }
+
+  private createEntranceDoor(isoX: number, isoY: number) {
+    const pos = this.isoToScreen(isoX, isoY)
+    const graphics = this.add.graphics()
+    
+    // Door frame
+    graphics.fillStyle(0x654321, 1)
+    graphics.fillRect(pos.x - 20, pos.y - 40, 40, 60)
+    graphics.lineStyle(2, 0x4A3319, 1)
+    graphics.strokeRect(pos.x - 20, pos.y - 40, 40, 60)
+    
+    // Door handle
+    graphics.fillStyle(0xFFD700, 1)
+    graphics.fillCircle(pos.x + 10, pos.y - 10, 3)
+    
+    graphics.setDepth(1)
+  }
+
+  private createPlant(isoX: number, isoY: number) {
+    const pos = this.isoToScreen(isoX, isoY)
+    const graphics = this.add.graphics()
+    
+    // Pot (brown square)
+    graphics.fillStyle(0x8B4513, 1)
+    graphics.fillRect(pos.x - 10, pos.y - 5, 20, 15)
+    graphics.lineStyle(1, 0x654321, 1)
+    graphics.strokeRect(pos.x - 10, pos.y - 5, 20, 15)
+    
+    // Plant (green circles)
+    graphics.fillStyle(0x228B22, 0.8)
+    graphics.fillCircle(pos.x - 5, pos.y - 15, 8)
+    graphics.fillCircle(pos.x + 5, pos.y - 15, 8)
+    graphics.fillCircle(pos.x, pos.y - 20, 8)
+    
+    graphics.setDepth(1)
+  }
+
+  private createWorkstation(agent: AgentConfig) {
+    const pos = this.isoToScreen(agent.position.x, agent.position.y)
+    const graphics = this.add.graphics()
+    
+    // Theme color carpet (very light)
+    const carpetColor = parseInt(agent.color.replace('#', ''), 16)
+    graphics.fillStyle(carpetColor, 0.15)
+    graphics.fillEllipse(pos.x, pos.y + 30, 140, 80)
+    
+    // Desk (light wood isometric)
+    graphics.fillStyle(0xD2B48C, 1)
+    graphics.lineStyle(2, 0xC19A6B, 1)
+    
+    // Isometric desk
+    const deskW = 50
+    const deskH = 30
+    graphics.beginPath()
+    graphics.moveTo(pos.x, pos.y + 20)
+    graphics.lineTo(pos.x + deskW / 2, pos.y + 20 + deskH / 2)
+    graphics.lineTo(pos.x, pos.y + 20 + deskH)
+    graphics.lineTo(pos.x - deskW / 2, pos.y + 20 + deskH / 2)
+    graphics.closePath()
+    graphics.fillPath()
+    graphics.strokePath()
+    
+    // Chair (small, dark)
+    graphics.fillStyle(0x333333, 1)
+    graphics.fillCircle(pos.x, pos.y + 45, 8)
+    
+    // Workstation label
+    this.add.text(pos.x, pos.y + 60, agent.workstation, {
+      fontSize: '10px',
+      color: '#666666',
+      fontFamily: '"Noto Sans TC", "Microsoft JhengHei", sans-serif'
+    }).setOrigin(0.5).setDepth(2)
+    
+    graphics.setDepth(-1)
+  }
+
+  // ─── Agent Creation (with nameplates) ──────────────────
+  private createAgents() {
+    AGENTS.forEach((agent, index) => {
+      const screenPos = this.isoToScreen(agent.position.x, agent.position.y)
       const container = this.add.container(screenPos.x, screenPos.y - 20)
 
       // Shadow (ellipse under feet)
@@ -166,38 +259,50 @@ export class OfficeScene extends Phaser.Scene {
       const imageKey = `${agent.id}-hq`
       const sprite = this.add.image(0, 0, imageKey)
       sprite.setDisplaySize(110, 110)
+      
+      // Larger hitArea: 200x200
       sprite.setInteractive({
         useHandCursor: true,
-        hitArea: new Phaser.Geom.Rectangle(-70, -70, 140, 140),
+        hitArea: new Phaser.Geom.Rectangle(-100, -100, 200, 200),
         hitAreaCallback: Phaser.Geom.Rectangle.Contains
       })
 
       sprite.on('pointerover', () => {
         sprite.setTint(0xffffaa)
-        sprite.setScale(sprite.scaleX * 1.1, sprite.scaleY * 1.1)
+        this.tweens.add({
+          targets: sprite,
+          scaleX: 1.15,
+          scaleY: 1.15,
+          duration: 150,
+          ease: 'Back.easeOut'
+        })
       })
+      
       sprite.on('pointerout', () => {
         sprite.clearTint()
-        sprite.setDisplaySize(110, 110)
+        this.tweens.add({
+          targets: sprite,
+          scaleX: 1,
+          scaleY: 1,
+          duration: 150,
+          ease: 'Sine.easeOut'
+        })
       })
-      sprite.on('pointerdown', () => this.onAgentClick(agent))
+      
+      sprite.on('pointerdown', () => {
+        // Click bounce animation
+        this.tweens.add({
+          targets: container,
+          scaleX: 1.1,
+          scaleY: 1.1,
+          duration: 100,
+          yoyo: true,
+          ease: 'Sine.easeInOut'
+        })
+        this.onAgentClick(agent)
+      })
 
-      // Name text (above character)
-      const nameText = this.add.text(0, -65, agent.name, {
-        fontSize: '14px',
-        fontStyle: 'bold',
-        color: '#333333',
-        stroke: '#ffffff',
-        strokeThickness: 3
-      }).setOrigin(0.5)
-
-      // Role text (below character)
-      const roleText = this.add.text(0, 58, agent.role, {
-        fontSize: '10px',
-        color: '#666666'
-      }).setOrigin(0.5)
-
-      container.add([sprite, nameText, roleText])
+      container.add(sprite)
       this.agents.set(agent.id, container)
 
       // Idle floating animation (offset per agent)
@@ -222,6 +327,85 @@ export class OfficeScene extends Phaser.Scene {
         ease: 'Sine.easeInOut',
         delay: index * 250,
       })
+    })
+  }
+
+  // ─── Agent Nameplates (HUD) ────────────────────────────
+  private createAgentNameplates() {
+    const isMobile = this.cameras.main.width < 768
+    
+    AGENTS.forEach(agent => {
+      const screenPos = this.isoToScreen(agent.position.x, agent.position.y)
+      const container = this.add.container(screenPos.x, screenPos.y - 90)
+
+      const nameWidth = isMobile ? 140 : 180
+      const nameHeight = isMobile ? 40 : 50
+      const nameFontSize = isMobile ? '13px' : '16px'
+      const roleFontSize = isMobile ? '10px' : '12px'
+      
+      // Semi-transparent black rounded rectangle
+      const bgGraphics = this.add.graphics()
+      bgGraphics.fillStyle(0x000000, 0.7)
+      bgGraphics.fillRoundedRect(-nameWidth / 2, 0, nameWidth, nameHeight, 8)
+      bgGraphics.lineStyle(2, parseInt(agent.color.replace('#', ''), 16), 0.8)
+      bgGraphics.strokeRoundedRect(-nameWidth / 2, 0, nameWidth, nameHeight, 8)
+
+      // Agent name (large text)
+      const nameText = this.add.text(0, isMobile ? 8 : 12, agent.name, {
+        fontSize: nameFontSize,
+        fontFamily: '"Noto Sans TC", "Microsoft JhengHei", sans-serif',
+        fontStyle: 'bold',
+        color: '#ffffff',
+        shadow: { offsetX: 1, offsetY: 1, color: '#000000', blur: 3, fill: true }
+      }).setOrigin(0.5, 0)
+
+      // Role text (small text)
+      const roleText = this.add.text(0, isMobile ? 23 : 30, agent.role, {
+        fontSize: roleFontSize,
+        fontFamily: '"Noto Sans TC", "Microsoft JhengHei", sans-serif',
+        color: '#cccccc'
+      }).setOrigin(0.5, 0)
+
+      container.add([bgGraphics, nameText, roleText])
+      container.setDepth(100)
+      
+      // Make nameplate clickable
+      container.setSize(nameWidth, nameHeight)
+      container.setInteractive({
+        useHandCursor: true,
+        hitArea: new Phaser.Geom.Rectangle(-nameWidth / 2, 0, nameWidth, nameHeight),
+        hitAreaCallback: Phaser.Geom.Rectangle.Contains
+      })
+      
+      container.on('pointerdown', () => {
+        this.tweens.add({
+          targets: container,
+          scaleX: 1.05,
+          scaleY: 1.05,
+          duration: 100,
+          yoyo: true,
+          ease: 'Sine.easeInOut'
+        })
+        this.onAgentClick(agent)
+      })
+      
+      container.on('pointerover', () => {
+        bgGraphics.clear()
+        bgGraphics.fillStyle(0x000000, 0.85)
+        bgGraphics.fillRoundedRect(-nameWidth / 2, 0, nameWidth, nameHeight, 8)
+        bgGraphics.lineStyle(3, parseInt(agent.color.replace('#', ''), 16), 1)
+        bgGraphics.strokeRoundedRect(-nameWidth / 2, 0, nameWidth, nameHeight, 8)
+      })
+      
+      container.on('pointerout', () => {
+        bgGraphics.clear()
+        bgGraphics.fillStyle(0x000000, 0.7)
+        bgGraphics.fillRoundedRect(-nameWidth / 2, 0, nameWidth, nameHeight, 8)
+        bgGraphics.lineStyle(2, parseInt(agent.color.replace('#', ''), 16), 0.8)
+        bgGraphics.strokeRoundedRect(-nameWidth / 2, 0, nameWidth, nameHeight, 8)
+      })
+
+      this.agentNameplates.set(agent.id, container)
     })
   }
 
@@ -315,13 +499,16 @@ export class OfficeScene extends Phaser.Scene {
     const color = parseInt(agent.color.replace('#', ''), 16)
     const agentContainer = this.agents.get(agent.id)
     if (agentContainer) {
+      // Ripple effect
       const flash = this.add.graphics()
       flash.setPosition(agentContainer.x, agentContainer.y)
       flash.fillStyle(color, 0.3)
       flash.fillCircle(0, 0, 70)
       this.tweens.add({ 
         targets: flash, 
-        alpha: 0, 
+        alpha: 0,
+        scaleX: 1.5,
+        scaleY: 1.5,
         duration: 500, 
         onComplete: () => flash.destroy() 
       })
@@ -635,7 +822,7 @@ export class OfficeScene extends Phaser.Scene {
     this.currentAgent = undefined
   }
 
-  // ─── Camera ────────────────────────────────────────────
+  // ─── Camera (with mobile touch support) ───────────────
   private setupCamera() {
     const camera = this.cameras.main
     camera.setBounds(-200, 0, 1600, 1200)
@@ -664,6 +851,7 @@ export class OfficeScene extends Phaser.Scene {
         return
       }
 
+      // Pinch zoom (two fingers)
       if (this.input.pointer1.isDown && this.input.pointer2.isDown) {
         const p1 = this.input.pointer1
         const p2 = this.input.pointer2
@@ -681,6 +869,7 @@ export class OfficeScene extends Phaser.Scene {
         return
       }
 
+      // Single finger drag (threshold > 15px)
       if (pointer.isDown && !pointer.rightButtonDown()) {
         const dx = pointer.x - pointer.downX
         const dy = pointer.y - pointer.downY
@@ -710,7 +899,7 @@ export class OfficeScene extends Phaser.Scene {
   private addTitle() {
     const isMobile = /Mobi|Android|iPhone/i.test(navigator.userAgent) || 'ontouchstart' in window
     
-    this.add.text(640, 30, 'William AI Office - Clean Scene', {
+    this.add.text(640, 30, 'William AI Office', {
       fontSize: '24px',
       fontStyle: 'bold',
       color: '#333333',
@@ -719,8 +908,8 @@ export class OfficeScene extends Phaser.Scene {
     }).setOrigin(0.5).setScrollFactor(0)
 
     const hintText = isMobile 
-      ? '點擊 Agent 對話 | 拖曳平移 | 雙指縮放'
-      : '點擊 Agent 開始對話 | 右鍵拖曳平移 | 滾輪縮放 | ESC 關閉對話'
+      ? '點擊 Agent 或名牌對話 | 拖曳平移 | 雙指縮放'
+      : '點擊 Agent 或名牌開始對話 | 右鍵拖曳平移 | 滾輪縮放 | ESC 關閉對話'
     
     this.add.text(640, 60, hintText, {
       fontSize: '14px',
