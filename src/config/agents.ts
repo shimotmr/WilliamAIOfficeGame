@@ -29,7 +29,7 @@ export const AGENTS: AgentConfig[] = [
     name: 'Inspector',
     role: 'Quality Assurance',
     color: '#1a1a1a',
-    position: { x: 15, y: 4 },
+    position: { x: 17, y: 4 },
     workstation: '品管室'
   },
   {
@@ -45,7 +45,7 @@ export const AGENTS: AgentConfig[] = [
     name: 'Coder',
     role: 'Software Engineer',
     color: '#10B981',
-    position: { x: 17, y: 8 },
+    position: { x: 15, y: 8 },
     workstation: '實驗室'
   },
   {
@@ -61,7 +61,7 @@ export const AGENTS: AgentConfig[] = [
     name: 'Designer',
     role: 'UI/UX Designer',
     color: '#8B5CF6',
-    position: { x: 15, y: 12 },
+    position: { x: 13, y: 12 },
     workstation: '工作室'
   },
   {
