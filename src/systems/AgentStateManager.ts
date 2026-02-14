@@ -78,7 +78,7 @@ export class AgentStateManager {
   private startAutoUpdate() {
     // Update states every 30 seconds
     this.updateTimer = setInterval(() => {
-      this.states.forEach((state, id) => {
+      this.states.forEach((_state, id) => {
         // Random chance to change state (30%)
         if (Math.random() < 0.3) {
           this.updateState(id)
