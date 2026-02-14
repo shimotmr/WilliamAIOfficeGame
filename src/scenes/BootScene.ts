@@ -111,7 +111,7 @@ export class BootScene extends Phaser.Scene {
 
     // 載入 Tiled map 和 tileset
     this.load.tilemapTiledJSON('office', 'maps/office.json')
-    this.load.image('office-tiles', 'tilesets/office-tileset.png')
+    this.load.image('kenney-tiles', 'tilesets/kenney/kenney-tileset.png')
   }
 
   create() {

@@ -237,7 +237,7 @@ export class OfficeScene extends Phaser.Scene {
   private createTilemapFloor() {
     // Load the Tiled map
     const map = this.make.tilemap({ key: 'office' })
-    const tileset = map.addTilesetImage('office-tiles', 'office-tiles')
+    const tileset = map.addTilesetImage('kenney-tiles', 'kenney-tiles')
     
     if (!tileset) {
       console.error('[OfficeScene] Failed to load tileset')
