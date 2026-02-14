@@ -55,6 +55,18 @@ export class OfficeScene extends Phaser.Scene {
   private portraitImage?: Phaser.GameObjects.Image
   private dialogueNameBg?: Phaser.GameObjects.Graphics
   private continueHint?: Phaser.GameObjects.Text
+  
+  // Click counter for secret dialogues
+  // @ts-ignore - Used in onAgentClick but TS doesn't detect Map usage
+  private agentClickCount: Map<string, number> = new Map()
+
+  // Audio system
+  private bgmMusic?: Phaser.Sound.BaseSound
+  private clickSound?: Phaser.Sound.BaseSound
+  private dialogueOpenSound?: Phaser.Sound.BaseSound
+  private typewriterSound?: Phaser.Sound.BaseSound
+  private isMuted = false
+  private bgmStarted = false
 
   // (Particles moved to WorkstationDecorations)
 
@@ -82,6 +94,8 @@ export class OfficeScene extends Phaser.Scene {
     this.createDialogueBox()
     this.setupDialogueInput()
     this.setupEntranceAnimation()
+    this.setupAudio()
+    this.createMuteButton()
   }
 
   update(_time: number, _delta: number) {
@@ -533,6 +547,13 @@ export class OfficeScene extends Phaser.Scene {
   private onAgentClick(agent: AgentConfig) {
     if (this.dialogueActive) return
 
+    // Play click sound and start BGM on first interaction
+    this.playSound(this.clickSound)
+    if (!this.bgmStarted && this.bgmMusic) {
+      this.bgmMusic.play({ loop: true, volume: 0.3 })
+      this.bgmStarted = true
+    }
+
     const color = parseInt(agent.color.replace('#', ''), 16)
     const pos = this.isoToScreen(agent.position.x, agent.position.y)
     const w = this.TILE_WIDTH * 3
@@ -552,12 +573,20 @@ export class OfficeScene extends Phaser.Scene {
     this.cameras.main.pan(screenPos.x, screenPos.y, 600, 'Sine.easeInOut')
 
     this.currentAgent = agent
-    const { text } = getRandomDialogue(agent.id)
+    
+    // 點擊計數器
+    const currentCount = this.agentClickCount.get(agent.id) || 0
+    this.agentClickCount.set(agent.id, currentCount + 1)
+    
+    const { text } = getRandomDialogue(agent.id, undefined, currentCount + 1)
     this.showDialogue(agent, text)
   }
 
   private showDialogue(agent: AgentConfig, text: string) {
     if (!this.dialogueBox || !this.dialogueNameText || !this.dialogueBodyText) return
+
+    // Play dialogue open sound
+    this.playSound(this.dialogueOpenSound)
 
     const camH = this.cameras.main.height
     const boxH = 160
@@ -600,6 +629,11 @@ export class OfficeScene extends Phaser.Scene {
         if (this.currentCharIndex < this.fullDialogueText.length) {
           this.currentCharIndex++
           this.dialogueBodyText?.setText(this.fullDialogueText.substring(0, this.currentCharIndex))
+          // Play typewriter sound for non-whitespace characters
+          const char = this.fullDialogueText[this.currentCharIndex - 1]
+          if (char && char.trim() !== '') {
+            this.playSound(this.typewriterSound, 0.1)
+          }
         } else {
           this.typewriterTimer?.destroy()
           this.onTypewriterComplete()
@@ -643,6 +677,7 @@ export class OfficeScene extends Phaser.Scene {
     const options = [
       { label: '了解更多', action: 'more' },
       { label: '查看工作狀態', action: 'status' },
+      { label: '團隊合作', action: 'teamwork' },
       { label: '離開', action: 'leave' },
     ]
 
@@ -764,6 +799,27 @@ export class OfficeScene extends Phaser.Scene {
             this.dialoguePhase = 'options'
             this.continueHint?.setVisible(false)
             this.showOptions()
+          }
+        },
+        loop: true
+      })
+    } else if (action === 'teamwork') {
+      const { text } = getRandomDialogue(this.currentAgent.id, 'teamwork')
+      this.dialoguePhase = 'typing'
+      this.continueHint?.setVisible(true)
+      this.dialogueBodyText?.setText('')
+      this.fullDialogueText = text
+      this.currentCharIndex = 0
+      this.typewriterTimer?.destroy()
+      this.typewriterTimer = this.time.addEvent({
+        delay: 35,
+        callback: () => {
+          if (this.currentCharIndex < this.fullDialogueText.length) {
+            this.currentCharIndex++
+            this.dialogueBodyText?.setText(this.fullDialogueText.substring(0, this.currentCharIndex))
+          } else {
+            this.typewriterTimer?.destroy()
+            this.onTypewriterComplete()
           }
         },
         loop: true
@@ -892,5 +948,77 @@ export class OfficeScene extends Phaser.Scene {
         ease: 'Cubic.easeInOut'
       })
     })
+  }
+
+  // ─── Audio System ──────────────────────────────────────
+  private setupAudio() {
+    this.bgmMusic = this.sound.add('bgm')
+    this.clickSound = this.sound.add('click')
+    this.dialogueOpenSound = this.sound.add('dialogue-open')
+    this.typewriterSound = this.sound.add('typewriter')
+  }
+
+  private playSound(sound?: Phaser.Sound.BaseSound, volume = 1.0) {
+    if (!sound || this.isMuted) return
+    if ('play' in sound) {
+      sound.play({ volume })
+    }
+  }
+
+  private createMuteButton() {
+    const container = this.add.container(1230, 30)
+    
+    const bg = this.add.graphics()
+    bg.fillStyle(0x000000, 0.7)
+    bg.fillRoundedRect(0, 0, 50, 50, 8)
+    bg.lineStyle(2, 0xffffff, 0.5)
+    bg.strokeRoundedRect(0, 0, 50, 50, 8)
+
+    const icon = this.add.text(25, 25, '🔊', {
+      fontSize: '28px'
+    }).setOrigin(0.5)
+
+    container.add([bg, icon])
+    container.setInteractive(new Phaser.Geom.Rectangle(0, 0, 50, 50), Phaser.Geom.Rectangle.Contains)
+    container.setScrollFactor(0)
+
+    container.on('pointerdown', () => {
+      this.toggleMute()
+      icon.setText(this.isMuted ? '🔇' : '🔊')
+      
+      // Visual feedback
+      this.tweens.add({
+        targets: container,
+        scale: 0.9,
+        duration: 100,
+        yoyo: true
+      })
+    })
+
+    container.on('pointerover', () => {
+      bg.clear()
+      bg.fillStyle(0x1E3A8A, 0.8)
+      bg.fillRoundedRect(0, 0, 50, 50, 8)
+      bg.lineStyle(2, 0xffffff, 0.8)
+      bg.strokeRoundedRect(0, 0, 50, 50, 8)
+    })
+
+    container.on('pointerout', () => {
+      bg.clear()
+      bg.fillStyle(0x000000, 0.7)
+      bg.fillRoundedRect(0, 0, 50, 50, 8)
+      bg.lineStyle(2, 0xffffff, 0.5)
+      bg.strokeRoundedRect(0, 0, 50, 50, 8)
+    })
+  }
+
+  private toggleMute() {
+    this.isMuted = !this.isMuted
+    
+    if (this.isMuted) {
+      this.sound.mute = true
+    } else {
+      this.sound.mute = false
+    }
   }
 }

@@ -77,6 +77,12 @@ export class BootScene extends Phaser.Scene {
     furnitureList.forEach(name => {
       this.load.image(name, `furniture/${name}.png`)
     })
+
+    // 載入音效
+    this.load.audio('bgm', 'audio/bgm.mp3')
+    this.load.audio('click', 'audio/click.mp3')
+    this.load.audio('dialogue-open', 'audio/dialogue-open.mp3')
+    this.load.audio('typewriter', 'audio/typewriter.mp3')
   }
 
   create() {
