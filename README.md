@@ -59,7 +59,15 @@ npm run preview
 
 ---
 
+## 線上展示
+
+🌐 **正式網址**: https://william-ai-office-game.vercel.app  
+📂 **GitHub Repo**: https://github.com/shimotmr/WilliamAIOfficeGame
+
+---
+
 **專案文件**: 參考 `~/clawd/memory/projects/agent-showcase-game-design.md`  
 **版本**: Phase 0  
-**日期**: 2026-02-14
+**日期**: 2026-02-14  
+**狀態**: ✅ 已上線
 

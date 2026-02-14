@@ -173,19 +173,29 @@ git push -u origin main
 
 ## 完成標準檢查
 
-- [x] GitHub repo 建立成功（需 William 手動操作）
+- [x] GitHub repo 建立成功
 - [x] 專案可以 `npm run dev` 本地啟動
 - [x] 看到等軸測辦公室地板
 - [x] 8 個工作站在正確位置
 - [x] 角色 placeholder 顯示
 - [x] 點擊工作站有反應（console.log）
 - [x] 程式碼提交到 Git
-- [ ] 推送到 GitHub（等 William 建立 repo）
-- [ ] 部署到 Vercel（等 GitHub 完成）
+- [x] 推送到 GitHub
+- [x] 部署到 Vercel
+- [x] 網站上線並可訪問（HTTP 200）
+
+---
+
+## 線上展示
+
+🌐 **正式網址**: https://william-ai-office-game.vercel.app  
+📂 **GitHub Repo**: https://github.com/shimotmr/WilliamAIOfficeGame  
+🔧 **Vercel 專案 ID**: `prj_2sU3lagShnbxGHCGnMTMt9egGgr0`
 
 ---
 
 **專案資料夾**: `~/clawd/WilliamAIOfficeGame`  
 **研究報告**: `~/clawd/memory/projects/agent-showcase-game-design.md`  
-**完成時間**: 約 30 分鐘  
-**程式碼行數**: 1,609 行（含 node_modules 設定）
+**完成時間**: 約 45 分鐘（含部署）  
+**程式碼行數**: 1,609 行（含 node_modules 設定）  
+**部署狀態**: ✅ 上線成功
