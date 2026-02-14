@@ -16,8 +16,8 @@ export class OfficeScene extends Phaser.Scene {
   private agents: Map<string, Phaser.GameObjects.Container> = new Map()
   private readonly TILE_WIDTH = 64
   private readonly TILE_HEIGHT = 32
-  private readonly MAP_WIDTH = 20
-  private readonly MAP_HEIGHT = 18
+  private readonly MAP_WIDTH = 26
+  private readonly MAP_HEIGHT = 26
 
   // Dialogue system
   private dialogueBox?: Phaser.GameObjects.Container
@@ -250,7 +250,7 @@ export class OfficeScene extends Phaser.Scene {
 
   private setupCamera() {
     const camera = this.cameras.main
-    camera.setBounds(0, 0, 2000, 1200)
+    camera.setBounds(-200, 0, 2400, 1600)
 
     let isDragging = false
     let dragStartX = 0
