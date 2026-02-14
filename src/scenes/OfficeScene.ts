@@ -35,6 +35,7 @@ const AGENT_CARPET_COLORS: Record<string, number> = {
 export class OfficeScene extends Phaser.Scene {
   private agents: Map<string, Phaser.GameObjects.Container> = new Map()
   private basePlates: Map<string, Phaser.GameObjects.Graphics> = new Map()
+  private agentNameplates: Map<string, Phaser.GameObjects.Container> = new Map()
   private readonly TILE_WIDTH = 64
   private readonly TILE_HEIGHT = 32
   private readonly MAP_WIDTH = 26
@@ -75,10 +76,12 @@ export class OfficeScene extends Phaser.Scene {
     this.createDecorations()
     this.createWorkstationLabels()
     this.createAgents()
+    this.createAgentNameplates()
     this.setupCamera()
     this.addTitle()
     this.createDialogueBox()
     this.setupDialogueInput()
+    this.setupEntranceAnimation()
   }
 
   update(_time: number, _delta: number) {
@@ -365,6 +368,85 @@ export class OfficeScene extends Phaser.Scene {
         ease: 'Sine.easeInOut',
         delay: index * 250,
       })
+    })
+  }
+
+  // ─── Agent Nameplates (floating above agents) ──────────
+  private createAgentNameplates() {
+    AGENTS.forEach((agent, index) => {
+      const screenPos = this.isoToScreen(agent.position.x, agent.position.y)
+      const container = this.add.container(screenPos.x, screenPos.y - 110)
+
+      // 半透明黑底圓角矩形
+      const nameWidth = 180
+      const nameHeight = 50
+      const bgGraphics = this.add.graphics()
+      bgGraphics.fillStyle(0x000000, 0.7)
+      bgGraphics.fillRoundedRect(-nameWidth / 2, 0, nameWidth, nameHeight, 8)
+      bgGraphics.lineStyle(2, parseInt(agent.color.replace('#', ''), 16), 0.8)
+      bgGraphics.strokeRoundedRect(-nameWidth / 2, 0, nameWidth, nameHeight, 8)
+
+      // 角色名字（大字）
+      const nameText = this.add.text(0, 12, agent.name, {
+        fontSize: '16px',
+        fontFamily: '"Noto Sans TC", "Microsoft JhengHei", sans-serif',
+        fontStyle: 'bold',
+        color: '#ffffff',
+        shadow: { offsetX: 1, offsetY: 1, color: '#000000', blur: 3, fill: true }
+      })
+      nameText.setOrigin(0.5, 0)
+
+      // 職稱（小字）
+      const roleText = this.add.text(0, 30, agent.role, {
+        fontSize: '12px',
+        fontFamily: '"Noto Sans TC", "Microsoft JhengHei", sans-serif',
+        color: '#cccccc',
+        shadow: { offsetX: 1, offsetY: 1, color: '#000000', blur: 2, fill: true }
+      })
+      roleText.setOrigin(0.5, 0)
+
+      container.add([bgGraphics, nameText, roleText])
+      container.setAlpha(0.85)
+      this.agentNameplates.set(agent.id, container)
+
+      // 隨角色 idle 動畫一起浮動（與角色同步）
+      this.tweens.add({
+        targets: container,
+        y: screenPos.y - 113,
+        duration: 2000,
+        yoyo: true,
+        repeat: -1,
+        ease: 'Sine.easeInOut',
+        delay: index * 250,
+      })
+
+      // 滑鼠靠近時名牌更亮
+      const agentContainer = this.agents.get(agent.id)
+      if (agentContainer) {
+        const sprite = agentContainer.list.find(obj => obj.type === 'Image') as Phaser.GameObjects.Image
+        if (sprite) {
+          sprite.on('pointerover', () => {
+            container.setAlpha(1)
+            this.tweens.add({
+              targets: container,
+              scaleX: 1.05,
+              scaleY: 1.05,
+              duration: 150,
+              ease: 'Back.easeOut'
+            })
+          })
+          sprite.on('pointerout', () => {
+            container.setAlpha(0.85)
+            this.tweens.add({
+              targets: container,
+              scaleX: 1,
+              scaleY: 1,
+              duration: 150,
+              ease: 'Back.easeIn'
+            })
+          })
+        }
+      }
     })
   }
 
@@ -791,5 +873,24 @@ export class OfficeScene extends Phaser.Scene {
       x: (isoX - isoY) * (this.TILE_WIDTH / 2) + offsetX,
       y: (isoX + isoY) * (this.TILE_HEIGHT / 2) + offsetY
     }
+  }
+
+  // ─── Entrance Animation (fade-in + zoom-in) ────────────
+  private setupEntranceAnimation() {
+    const camera = this.cameras.main
+
+    // 從全景 (zoom 0.6) 開始
+    camera.setZoom(0.6)
+    camera.fadeIn(1000, 0, 0, 0)
+
+    // 2 秒後慢慢 zoom in 到中心 (zoom 1.0)
+    this.time.delayedCall(1000, () => {
+      this.tweens.add({
+        targets: camera,
+        zoom: 1.0,
+        duration: 2000,
+        ease: 'Cubic.easeInOut'
+      })
+    })
   }
 }

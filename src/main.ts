@@ -1,4 +1,5 @@
 import Phaser from 'phaser'
+import { TitleScene } from './scenes/TitleScene'
 import { BootScene } from './scenes/BootScene'
 import { OfficeScene } from './scenes/OfficeScene'
 
@@ -12,7 +13,7 @@ const config: Phaser.Types.Core.GameConfig = {
     mode: Phaser.Scale.FIT,
     autoCenter: Phaser.Scale.CENTER_BOTH
   },
-  scene: [BootScene, OfficeScene],
+  scene: [TitleScene, BootScene, OfficeScene],
   physics: {}
 }
 
