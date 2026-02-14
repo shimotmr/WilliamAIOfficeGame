@@ -74,27 +74,12 @@ export class TitleScene extends Phaser.Scene {
       ease: 'Sine.easeInOut'
     })
 
-    // 點擊任意處開始
-    this.input.once('pointerdown', () => {
-      this.cameras.main.fadeOut(500, 0, 0, 0)
-      this.time.delayedCall(500, () => {
-        this.scene.start('BootScene')
-      })
-    })
-
-    // 鍵盤 SPACE 或 ENTER 也可啟動
-    this.input.keyboard?.once('keydown-SPACE', () => {
-      this.cameras.main.fadeOut(500, 0, 0, 0)
-      this.time.delayedCall(500, () => {
-        this.scene.start('BootScene')
-      })
-    })
-
-    this.input.keyboard?.once('keydown-ENTER', () => {
-      this.cameras.main.fadeOut(500, 0, 0, 0)
-      this.time.delayedCall(500, () => {
-        this.scene.start('BootScene')
-      })
-    })
+    // 點擊任意處開始（直接轉場，fade 由 OfficeScene 處理）
+    const startGame = () => {
+      this.scene.start('BootScene')
+    }
+    this.input.once('pointerdown', startGame)
+    this.input.keyboard?.once('keydown-SPACE', startGame)
+    this.input.keyboard?.once('keydown-ENTER', startGame)
   }
 }

@@ -86,10 +86,7 @@ export class BootScene extends Phaser.Scene {
   }
 
   create() {
-    // 載入完成，黑屏 fade-out 後轉場到 OfficeScene
-    this.cameras.main.fadeOut(1000, 0, 0, 0)
-    this.time.delayedCall(1000, () => {
-      this.scene.start('OfficeScene')
-    })
+    // 載入完成，直接轉場（fade 由 OfficeScene 處理）
+    this.scene.start('OfficeScene')
   }
 }
