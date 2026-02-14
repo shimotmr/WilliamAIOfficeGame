@@ -338,7 +338,11 @@ export class OfficeScene extends Phaser.Scene {
       const imageKey = `${agent.id}-hq`
       const sprite = this.add.image(0, 0, imageKey)
       sprite.setDisplaySize(110, 110)
-      sprite.setInteractive({ useHandCursor: true })
+      sprite.setInteractive({
+        useHandCursor: true,
+        hitArea: new Phaser.Geom.Rectangle(-70, -70, 140, 140),
+        hitAreaCallback: Phaser.Geom.Rectangle.Contains
+      })
 
       sprite.on('pointerover', () => {
         sprite.setTint(0xffffaa)
@@ -896,11 +900,8 @@ export class OfficeScene extends Phaser.Scene {
     let isDragging = false
     let dragStartX = 0
     let dragStartY = 0
-    let pointerDownTime = 0
-    let pointerDownX = 0
-    let pointerDownY = 0
 
-    // Pinch-to-zoom 變數
+    // Pinch-to-zoom
     let initialPinchDistance = 0
     let initialZoom = 1
 
@@ -911,65 +912,47 @@ export class OfficeScene extends Phaser.Scene {
         dragStartX = pointer.x
         dragStartY = pointer.y
       }
-      // 左鍵/觸控（手機單指）
-      else if (this.input.pointer1.isDown === false) {
-        // 記錄 pointer down 時間和位置，用於判斷是點擊還是拖曳
-        pointerDownTime = this.time.now
-        pointerDownX = pointer.x
-        pointerDownY = pointer.y
-      }
-      // 雙指觸控（pinch-to-zoom）
-      else if (this.input.pointer1.isDown && this.input.pointer2.isDown) {
-        const p1 = this.input.pointer1
-        const p2 = this.input.pointer2
-        const dx = p1.x - p2.x
-        const dy = p1.y - p2.y
-        initialPinchDistance = Math.sqrt(dx * dx + dy * dy)
-        initialZoom = camera.zoom
-      }
     })
 
     this.input.on('pointermove', (pointer: Phaser.Input.Pointer) => {
       // 右鍵拖曳（桌面）
-      if (isDragging) {
+      if (isDragging && pointer.rightButtonDown()) {
         camera.scrollX -= (pointer.x - dragStartX)
         camera.scrollY -= (pointer.y - dragStartY)
         dragStartX = pointer.x
         dragStartY = pointer.y
+        return
       }
-      // 雙指縮放（手機）
-      else if (this.input.pointer1.isDown && this.input.pointer2.isDown) {
+
+      // 雙指縮放（手機 pinch-to-zoom）
+      if (this.input.pointer1.isDown && this.input.pointer2.isDown) {
         const p1 = this.input.pointer1
         const p2 = this.input.pointer2
         const dx = p1.x - p2.x
         const dy = p1.y - p2.y
         const currentDistance = Math.sqrt(dx * dx + dy * dy)
-        
-        if (initialPinchDistance > 0) {
-          const scale = currentDistance / initialPinchDistance
-          const newZoom = Phaser.Math.Clamp(initialZoom * scale, 0.5, 2)
-          camera.setZoom(newZoom)
-        }
-      }
-      // 單指拖曳平移（手機）
-      else if (pointer.isDown && !pointer.rightButtonDown() && this.input.pointer1.isDown === false) {
-        const timeSinceDown = this.time.now - pointerDownTime
-        const dx = pointer.x - pointerDownX
-        const dy = pointer.y - pointerDownY
-        const distanceMoved = Math.sqrt(dx * dx + dy * dy)
 
-        // 如果超過 200ms 或移動超過 10px，視為拖曳（而非點擊）
-        if (timeSinceDown > 200 || distanceMoved > 10) {
-          if (!isDragging) {
-            isDragging = true
-            dragStartX = pointer.x
-            dragStartY = pointer.y
-          } else {
-            camera.scrollX -= (pointer.x - dragStartX)
-            camera.scrollY -= (pointer.y - dragStartY)
-            dragStartX = pointer.x
-            dragStartY = pointer.y
-          }
+        if (initialPinchDistance === 0) {
+          initialPinchDistance = currentDistance
+          initialZoom = camera.zoom
+        } else {
+          const scale = currentDistance / initialPinchDistance
+          camera.setZoom(Phaser.Math.Clamp(initialZoom * scale, 0.5, 2))
+        }
+        return
+      }
+
+      // 單指拖曳平移（手機） — 只在移動超過 15px 後才啟動
+      if (pointer.isDown && !pointer.rightButtonDown()) {
+        const dx = pointer.x - pointer.downX
+        const dy = pointer.y - pointer.downY
+        const dist = Math.sqrt(dx * dx + dy * dy)
+        if (dist > 15) {
+          // 一旦開始拖曳，持續平移
+          camera.scrollX -= (pointer.x - pointer.prevPosition.x)
+          camera.scrollY -= (pointer.y - pointer.prevPosition.y)
+          // 標記為拖曳，讓 pointerup 時不觸發 agent 點擊
+          isDragging = true
         }
       }
     })
@@ -982,8 +965,7 @@ export class OfficeScene extends Phaser.Scene {
     // 滾輪縮放（桌面）
     this.input.on('wheel', (_pointer: Phaser.Input.Pointer, _gameObjects: any[], _deltaX: number, deltaY: number) => {
       const zoomDelta = deltaY > 0 ? -0.1 : 0.1
-      const newZoom = Phaser.Math.Clamp(camera.zoom + zoomDelta, 0.5, 2)
-      camera.setZoom(newZoom)
+      camera.setZoom(Phaser.Math.Clamp(camera.zoom + zoomDelta, 0.5, 2))
     })
 
     camera.centerOn(640, 400)
