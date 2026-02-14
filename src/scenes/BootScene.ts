@@ -37,6 +37,29 @@ export class BootScene extends Phaser.Scene {
     })
     percentText.setOrigin(0.5, 0.5)
 
+    // 載入小提示
+    const tips = [
+      '與 8 位 AI Agent 互動，了解他們的工作',
+      '點擊 Agent 開始對話',
+      '使用右鍵拖曳平移畫面',
+      '使用滾輪縮放畫面',
+      '手機上可用雙指縮放',
+      '探索辦公室的休息區和會議室',
+      'Persona 5 風格的對話系統'
+    ]
+    const randomTip = Phaser.Utils.Array.GetRandom(tips)
+    const tipText = this.make.text({
+      x: width / 2,
+      y: height / 2 + 60,
+      text: `💡 ${randomTip}`,
+      style: {
+        font: '14px monospace',
+        color: '#cccccc',
+        wordWrap: { width: width - 100 }
+      }
+    })
+    tipText.setOrigin(0.5, 0.5)
+
     // 載入事件
     this.load.on('progress', (value: number) => {
       percentText.setText(Math.floor(value * 100) + '%')
@@ -50,14 +73,16 @@ export class BootScene extends Phaser.Scene {
       progressBox.destroy()
       loadingText.destroy()
       percentText.destroy()
+      tipText.destroy()
     })
 
-    // 載入角色立繪
+    // 載入角色立繪（WebP 格式優化）
     const agentIds = ['travis', 'researcher', 'inspector', 'secretary', 'coder', 'writer', 'designer', 'analyst']
     for (const id of agentIds) {
-      this.load.image(`${id}-male`, `agents/${id}-male.jpg`)
-      this.load.image(`${id}-female`, `agents/${id}-female.jpg`)
-      this.load.image(`${id}-hq`, `agents/${id}.jpg`)
+      // 優先使用 WebP，fallback 到 JPG
+      this.load.image(`${id}-male`, `agents/${id}-male.webp`)
+      this.load.image(`${id}-female`, `agents/${id}-female.webp`)
+      this.load.image(`${id}-hq`, `agents/${id}.webp`)
     }
 
     // 載入所有 Kenney furniture 素材

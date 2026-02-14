@@ -7,7 +7,13 @@ import {
   drawConferenceTable, drawPartition,
   drawLoungeArea, drawKitchenArea, drawEntranceArea, drawPottedPlantDecor
 } from './WorkstationDecorations'
-import { getRandomDialogue, getStatusInfo } from '../config/dialogues'
+import { getRandomDialogue, getStatusInfo, getStateBasedDialogue } from '../config/dialogues'
+import { AgentStateManager, MOOD_COLORS } from '../systems/AgentStateManager'
+import { StatePanel } from '../systems/StatePanel'
+import { AgentMovement } from '../systems/AgentMovement'
+import { EventSystem } from '../systems/EventSystem'
+import { SpeechBubbleSystem, NotificationSystem, createRippleEffect, bounceAnimation } from '../systems/UIEffects'
+import { getRandomNotification } from '../data/notifications'
 
 const DECORATION_MAP: Record<string, (scene: Phaser.Scene, x: number, y: number) => Phaser.GameObjects.Graphics> = {
   travis: drawTravisDecorations,
@@ -70,6 +76,19 @@ export class OfficeScene extends Phaser.Scene {
 
   // (Particles moved to WorkstationDecorations)
 
+  // State system (Phase 5)
+  private stateManager!: AgentStateManager
+  private statePanel?: StatePanel
+  private agentEnergyBars: Map<string, Phaser.GameObjects.Graphics> = new Map()
+  private agentActivityIcons: Map<string, Phaser.GameObjects.Text> = new Map()
+
+  // Movement & Event system (Phase 6)
+  private agentMovements: Map<string, AgentMovement> = new Map()
+  private eventSystem?: EventSystem
+  private speechBubbleSystem?: SpeechBubbleSystem
+  private notificationSystem?: NotificationSystem
+  private randomNotificationTimer?: Phaser.Time.TimerEvent
+
   constructor() {
     super('OfficeScene')
   }
@@ -77,6 +96,10 @@ export class OfficeScene extends Phaser.Scene {
   create() {
     console.log('[OfficeScene] create() start')
     try {
+      // Initialize state system
+      const agentIds = AGENTS.map(a => a.id)
+      this.stateManager = new AgentStateManager(agentIds)
+      
       this.cameras.main.setBackgroundColor('#1a1410')
       this.createIsometricFloor()
       this.createCarpets()
@@ -90,6 +113,7 @@ export class OfficeScene extends Phaser.Scene {
       this.createDecorations()
       this.createWorkstationLabels()
       this.createAgents()
+      this.createAgentEnergyBars()
       this.createAgentNameplates()
       this.setupCamera()
       this.addTitle()
@@ -98,10 +122,110 @@ export class OfficeScene extends Phaser.Scene {
       this.setupEntranceAnimation()
       this.setupAudio()
       this.createMuteButton()
+      
+      // Create state panel
+      this.statePanel = new StatePanel(this, this.stateManager)
+      
+      // Update agent visuals based on state every 1 second
+      this.time.addEvent({
+        delay: 1000,
+        callback: () => this.updateAgentVisuals(),
+        loop: true
+      })
+      
+      // Initialize Phase 6 systems (Movement & Events)
+      this.initializePhase6Systems()
+      
+      this.setupPerformanceOptimization()
       console.log('[OfficeScene] create() done')
     } catch (e) {
       console.error('[OfficeScene] create() CRASHED:', e)
     }
+  }
+
+  // ─── Phase 6: Movement & Event Systems ────────────────
+  private initializePhase6Systems() {
+    // Create movement controllers for each agent
+    AGENTS.forEach(agent => {
+      const container = this.agents.get(agent.id)
+      if (container) {
+        const movement = new AgentMovement({
+          agent,
+          container,
+          scene: this
+        })
+        this.agentMovements.set(agent.id, movement)
+      }
+    })
+
+    // Initialize UI effect systems
+    this.speechBubbleSystem = new SpeechBubbleSystem(this)
+    this.notificationSystem = new NotificationSystem(this)
+
+    // Initialize event system
+    this.eventSystem = new EventSystem({
+      scene: this,
+      agentMovements: this.agentMovements,
+      agentContainers: this.agents,
+      onNotification: (msg) => this.notificationSystem?.show(msg),
+      onSpeechBubble: (agentId, text, duration) => this.showSpeechBubble(agentId, text, duration)
+    })
+
+    // Start event system after 10 seconds
+    this.time.delayedCall(10000, () => {
+      this.eventSystem?.start()
+    })
+
+    // Random notification messages (every 20-40 seconds)
+    this.randomNotificationTimer = this.time.addEvent({
+      delay: Phaser.Math.Between(20000, 40000),
+      callback: () => {
+        this.notificationSystem?.show(getRandomNotification())
+        // Reschedule with random delay
+        if (this.randomNotificationTimer) {
+          this.randomNotificationTimer.reset({
+            delay: Phaser.Math.Between(20000, 40000),
+            callback: () => {
+              this.notificationSystem?.show(getRandomNotification())
+            }
+          })
+        }
+      },
+      loop: true
+    })
+  }
+
+  /**
+   * Show speech bubble above an agent
+   */
+  private showSpeechBubble(agentId: string, text: string, duration = 2500): void {
+    const agent = AGENTS.find(a => a.id === agentId)
+    if (!agent || !this.speechBubbleSystem) return
+    
+    this.speechBubbleSystem.show(
+      agentId,
+      text,
+      agent.position.x,
+      agent.position.y,
+      duration
+    )
+  }
+
+  // ─── Performance Optimization ──────────────────────────
+  private setupPerformanceOptimization() {
+    // 離開畫面時暫停所有動畫和音效
+    this.game.events.on('blur', () => {
+      this.tweens.pauseAll()
+      this.sound.pauseAll()
+      console.log('[OfficeScene] Game paused (blur)')
+    })
+
+    // 回到畫面時恢復
+    this.game.events.on('focus', () => {
+      this.tweens.resumeAll()
+      this.sound.resumeAll()
+      console.log('[OfficeScene] Game resumed (focus)')
+    })
   }
 
   update(_time: number, _delta: number) {
@@ -395,6 +519,92 @@ export class OfficeScene extends Phaser.Scene {
     })
   }
 
+  // ─── Energy Bars (Phase 5) ──────────
+  private createAgentEnergyBars() {
+    AGENTS.forEach(agent => {
+      const screenPos = this.isoToScreen(agent.position.x, agent.position.y)
+      const energyBar = this.add.graphics()
+      energyBar.setPosition(screenPos.x, screenPos.y + 70) // Below agent
+      energyBar.setDepth(100)
+      this.agentEnergyBars.set(agent.id, energyBar)
+
+      // Activity icon
+      const activityIcon = this.add.text(screenPos.x, screenPos.y + 30, '', {
+        fontSize: '20px',
+        fontFamily: 'Arial, sans-serif'
+      }).setOrigin(0.5).setDepth(100)
+      this.agentActivityIcons.set(agent.id, activityIcon)
+    })
+  }
+
+  // ─── Update Agent Visuals based on State (Phase 5) ──────────
+  private updateAgentVisuals() {
+    AGENTS.forEach(agent => {
+      const state = this.stateManager.getState(agent.id)
+      if (!state) return
+
+      const energyBar = this.agentEnergyBars.get(agent.id)
+      const activityIcon = this.agentActivityIcons.get(agent.id)
+      const agentContainer = this.agents.get(agent.id)
+      if (!energyBar || !agentContainer) return
+
+      // Draw energy bar
+      const barWidth = 60
+      const barHeight = 6
+      energyBar.clear()
+
+      // Background
+      energyBar.fillStyle(0x000000, 0.5)
+      energyBar.fillRect(-barWidth / 2, 0, barWidth, barHeight)
+
+      // Energy fill (color based on level)
+      let fillColor = 0x10B981 // Green
+      if (state.energy < 30) fillColor = 0xEF4444 // Red
+      else if (state.energy < 60) fillColor = 0xFBBF24 // Yellow
+
+      energyBar.fillStyle(fillColor, 0.9)
+      energyBar.fillRect(-barWidth / 2, 0, (barWidth * state.energy) / 100, barHeight)
+
+      // Border
+      energyBar.lineStyle(1, 0xffffff, 0.5)
+      energyBar.strokeRect(-barWidth / 2, 0, barWidth, barHeight)
+
+      // Activity icon
+      if (activityIcon) {
+        const iconMap: Record<string, string> = {
+          idle: '',
+          working: '💻',
+          meeting: '👥',
+          break: '☕',
+          helping: '🤝'
+        }
+        activityIcon.setText(iconMap[state.activity] || '')
+      }
+
+      // Adjust floating animation speed based on activity
+      const floatTween = this.tweens.getTweensOf(agentContainer)[0]
+      if (floatTween) {
+        if (state.activity === 'working') {
+          floatTween.timeScale = 1.5 // Faster float
+        } else if (state.activity === 'break') {
+          floatTween.timeScale = 0.3 // Almost still
+        } else {
+          floatTween.timeScale = 1 // Normal
+        }
+      }
+
+      // Glow color based on mood (update the glow inside container)
+      const glowGraphics = agentContainer.getAll()[0] as Phaser.GameObjects.Graphics
+      if (glowGraphics) {
+        const moodColors = MOOD_COLORS[state.mood]
+        const color = moodColors[Math.floor(Math.random() * moodColors.length)]
+        glowGraphics.clear()
+        glowGraphics.fillStyle(color, 0.15)
+        glowGraphics.fillCircle(0, 10, 65)
+      }
+    })
+  }
+
   // ─── Agent Nameplates (floating above agents) ──────────
   private createAgentNameplates() {
     const isMobile = this.cameras.main.width < 768
@@ -601,7 +811,23 @@ export class OfficeScene extends Phaser.Scene {
     const currentCount = this.agentClickCount.get(agent.id) || 0
     this.agentClickCount.set(agent.id, currentCount + 1)
     
-    const { text } = getRandomDialogue(agent.id, undefined, currentCount + 1)
+    // State-driven dialogue (Phase 5)
+    const state = this.stateManager.getState(agent.id)
+    let text: string
+    if (state) {
+      const stateContext = {
+        mood: state.mood,
+        activity: state.activity,
+        energy: state.energy
+      }
+      const result = getStateBasedDialogue(agent.id, stateContext, currentCount + 1)
+      text = result.text
+    } else {
+      // Fallback to random dialogue
+      const result = getRandomDialogue(agent.id, undefined, currentCount + 1)
+      text = result.text
+    }
+    
     this.showDialogue(agent, text)
   }
 

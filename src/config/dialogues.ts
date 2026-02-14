@@ -320,6 +320,64 @@ export function getRandomDialogue(
   return { state: 'idle', text: '...' }
 }
 
+// State-driven dialogue selection
+export interface AgentStateContext {
+  mood: 'happy' | 'focused' | 'tired' | 'stressed' | 'excited'
+  activity: 'idle' | 'working' | 'meeting' | 'break' | 'helping'
+  energy: number
+}
+
+export function getStateBasedDialogue(
+  agentId: string,
+  stateContext: AgentStateContext,
+  clickCount: number = 0
+): { state: DialogueState; text: string } {
+  const dialogues = DIALOGUE_DATA[agentId]
+  if (!dialogues) return { state: 'idle', text: '...' }
+
+  // Secret dialogues for repeated clicks
+  if (clickCount >= 5 && dialogues.secret && dialogues.secret.length > 0) {
+    const secretText = dialogues.secret[Math.floor(Math.random() * dialogues.secret.length)]
+    return { state: 'secret', text: secretText }
+  }
+
+  // State-driven dialogue selection
+  let selectedState: DialogueState = 'idle'
+
+  if (stateContext.activity === 'break') {
+    // Break time → relaxed chat
+    selectedState = Math.random() > 0.5 ? 'idle' : 'greeting'
+  } else if (stateContext.mood === 'tired' && stateContext.energy < 30) {
+    // Tired + low energy → complaining
+    selectedState = 'idle'
+  } else if (stateContext.mood === 'stressed') {
+    // Stressed → needs help or venting
+    selectedState = Math.random() > 0.5 ? 'working' : 'teamwork'
+  } else if (stateContext.mood === 'happy' && stateContext.activity === 'working') {
+    // Happy while working → excited about progress
+    selectedState = Math.random() > 0.7 ? 'proud' : 'working'
+  } else if (stateContext.mood === 'excited') {
+    // Excited → show off achievements
+    selectedState = 'proud'
+  } else if (stateContext.activity === 'working') {
+    selectedState = 'working'
+  } else if (stateContext.activity === 'meeting') {
+    selectedState = 'teamwork'
+  } else {
+    // Default rotation
+    const states: DialogueState[] = ['idle', 'greeting', 'working']
+    selectedState = states[Math.floor(Math.random() * states.length)]
+  }
+
+  const stateDialogues = dialogues[selectedState]
+  if (Array.isArray(stateDialogues) && stateDialogues.length > 0) {
+    const text = stateDialogues[Math.floor(Math.random() * stateDialogues.length)]
+    return { state: selectedState, text }
+  }
+
+  return { state: 'idle', text: '...' }
+}
+
 export function getStatusInfo(agentId: string): string {
   const statusMap: Record<string, string> = {
     travis: '📊 狀態：在線\n📋 管理中任務：8 個\n⏱️ 今日完成：5 個\n🔄 排程中：3 個',

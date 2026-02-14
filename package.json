@@ -13,6 +13,8 @@
   },
   "devDependencies": {
     "@types/node": "^20.11.0",
+    "sharp-cli": "^5.2.0",
+    "terser": "^5.46.0",
     "typescript": "^5.4.0",
     "vite": "^5.2.0"
   }
