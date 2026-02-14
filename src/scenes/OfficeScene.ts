@@ -1015,22 +1015,17 @@ export class OfficeScene extends Phaser.Scene {
     }
   }
 
-  // ─── Entrance Animation (fade-in + zoom-in) ────────────
+  // ─── Entrance Animation (zoom-in only, no fade) ────────────
   private setupEntranceAnimation() {
     const camera = this.cameras.main
 
-    // 從全景 (zoom 0.6) 開始
+    // 從全景 (zoom 0.6) 慢慢 zoom in 到 1.0
     camera.setZoom(0.6)
-    camera.fadeIn(1000, 0, 0, 0)
-
-    // 2 秒後慢慢 zoom in 到中心 (zoom 1.0)
-    this.time.delayedCall(1000, () => {
-      this.tweens.add({
-        targets: camera,
-        zoom: 1.0,
-        duration: 2000,
-        ease: 'Cubic.easeInOut'
-      })
+    this.tweens.add({
+      targets: camera,
+      zoom: 1.0,
+      duration: 2000,
+      ease: 'Cubic.easeInOut'
     })
   }
 
