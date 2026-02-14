@@ -13,6 +13,9 @@ const config: Phaser.Types.Core.GameConfig = {
     mode: Phaser.Scale.FIT,
     autoCenter: Phaser.Scale.CENTER_BOTH
   },
+  input: {
+    activePointers: 2  // 支援多點觸控（雙指縮放）
+  },
   scene: [TitleScene, BootScene, OfficeScene],
   physics: {}
 }

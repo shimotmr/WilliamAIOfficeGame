@@ -387,13 +387,19 @@ export class OfficeScene extends Phaser.Scene {
 
   // ─── Agent Nameplates (floating above agents) ──────────
   private createAgentNameplates() {
+    const isMobile = this.cameras.main.width < 768
+    
     AGENTS.forEach((agent, index) => {
       const screenPos = this.isoToScreen(agent.position.x, agent.position.y)
       const container = this.add.container(screenPos.x, screenPos.y - 110)
 
+      // 手機上縮小名牌
+      const nameWidth = isMobile ? 140 : 180
+      const nameHeight = isMobile ? 40 : 50
+      const nameFontSize = isMobile ? '13px' : '16px'
+      const roleFontSize = isMobile ? '10px' : '12px'
+      
       // 半透明黑底圓角矩形
-      const nameWidth = 180
-      const nameHeight = 50
       const bgGraphics = this.add.graphics()
       bgGraphics.fillStyle(0x000000, 0.7)
       bgGraphics.fillRoundedRect(-nameWidth / 2, 0, nameWidth, nameHeight, 8)
@@ -401,8 +407,8 @@ export class OfficeScene extends Phaser.Scene {
       bgGraphics.strokeRoundedRect(-nameWidth / 2, 0, nameWidth, nameHeight, 8)
 
       // 角色名字（大字）
-      const nameText = this.add.text(0, 12, agent.name, {
-        fontSize: '16px',
+      const nameText = this.add.text(0, isMobile ? 8 : 12, agent.name, {
+        fontSize: nameFontSize,
         fontFamily: '"Noto Sans TC", "Microsoft JhengHei", sans-serif',
         fontStyle: 'bold',
         color: '#ffffff',
@@ -411,8 +417,8 @@ export class OfficeScene extends Phaser.Scene {
       nameText.setOrigin(0.5, 0)
 
       // 職稱（小字）
-      const roleText = this.add.text(0, 30, agent.role, {
-        fontSize: '12px',
+      const roleText = this.add.text(0, isMobile ? 22 : 30, agent.role, {
+        fontSize: roleFontSize,
         fontFamily: '"Noto Sans TC", "Microsoft JhengHei", sans-serif',
         color: '#cccccc',
         shadow: { offsetX: 1, offsetY: 1, color: '#000000', blur: 2, fill: true }
@@ -469,26 +475,33 @@ export class OfficeScene extends Phaser.Scene {
     const w = this.cameras.main.width
     const boxH = 160
 
+    // 響應式判斷：手機 (w < 768) 或桌面
+    const isMobile = w < 768
+    const dialogueWidth = Math.min(w - 40, 800)
+    const fontSize = isMobile ? '16px' : '22px'
+    const nameFontSize = isMobile ? '14px' : '16px'
+    const leftPadding = isMobile ? 140 : 200
+
     const container = this.add.container(0, this.cameras.main.height)
       .setScrollFactor(0).setDepth(2000).setVisible(false)
 
     const bg = this.add.graphics()
     bg.fillStyle(0x000000, 0.85)
-    bg.fillRect(20, 0, w - 40, boxH)
+    bg.fillRect(20, 0, dialogueWidth, boxH)
     bg.lineStyle(3, 0xDD0000, 1)
     bg.beginPath()
     bg.moveTo(15, boxH)
     bg.lineTo(25, 0)
-    bg.lineTo(w - 15, 0)
-    bg.lineTo(w - 25, boxH)
+    bg.lineTo(dialogueWidth + 15, 0)
+    bg.lineTo(dialogueWidth + 5, boxH)
     bg.closePath()
     bg.strokePath()
     bg.lineStyle(1, 0xFF3333, 0.5)
     bg.beginPath()
     bg.moveTo(30, boxH - 5)
     bg.lineTo(38, 5)
-    bg.lineTo(w - 30, 5)
-    bg.lineTo(w - 38, boxH - 5)
+    bg.lineTo(dialogueWidth, 5)
+    bg.lineTo(dialogueWidth - 8, boxH - 5)
     bg.closePath()
     bg.strokePath()
 
@@ -496,24 +509,24 @@ export class OfficeScene extends Phaser.Scene {
     this.dialogueNameBg = nameBg
 
     const nameText = this.add.text(80, -8, '', {
-      fontSize: '16px',
+      fontSize: nameFontSize,
       fontFamily: '"Noto Sans TC", "Microsoft JhengHei", sans-serif',
       fontStyle: 'bold',
       color: '#ffffff',
       shadow: { offsetX: 2, offsetY: 2, color: '#000000', blur: 4, fill: true }
     }).setOrigin(0.5)
 
-    const bodyText = this.add.text(200, 25, '', {
-      fontSize: '20px',
+    const bodyText = this.add.text(leftPadding, 25, '', {
+      fontSize: fontSize,
       fontFamily: '"Noto Sans TC", "Microsoft JhengHei", sans-serif',
       fontStyle: 'bold',
       color: '#ffffff',
-      wordWrap: { width: w - 280 },
+      wordWrap: { width: dialogueWidth - leftPadding - 40 },
       lineSpacing: 10,
       shadow: { offsetX: 1, offsetY: 1, color: '#000000', blur: 3, fill: true }
     })
 
-    const hint = this.add.text(w - 60, boxH - 30, '▼', {
+    const hint = this.add.text(dialogueWidth - 40, boxH - 30, '▼', {
       fontSize: '18px',
       fontStyle: 'bold',
       color: '#FF3333'
@@ -674,6 +687,8 @@ export class OfficeScene extends Phaser.Scene {
 
     const camW = this.cameras.main.width
     const camH = this.cameras.main.height
+    const isMobile = camW < 768
+    
     const options = [
       { label: '了解更多', action: 'more' },
       { label: '查看工作狀態', action: 'status' },
@@ -682,10 +697,11 @@ export class OfficeScene extends Phaser.Scene {
     ]
 
     options.forEach((opt, i) => {
-      const btnW = 200
-      const btnH = 40
-      const startX = camW - 260
-      const startY = camH - 180 - (options.length - i) * 50
+      const btnW = isMobile ? 180 : 200
+      const btnH = isMobile ? 50 : 40  // 手機觸控區加大到至少 44px
+      const btnSpacing = isMobile ? 60 : 50  // 手機按鈕間距加大
+      const startX = camW - (isMobile ? 220 : 260)
+      const startY = camH - 180 - (options.length - i) * btnSpacing
 
       const container = this.add.container(startX + 300, startY)
         .setScrollFactor(0).setDepth(2002)
@@ -874,28 +890,90 @@ export class OfficeScene extends Phaser.Scene {
     let isDragging = false
     let dragStartX = 0
     let dragStartY = 0
+    let pointerDownTime = 0
+    let pointerDownX = 0
+    let pointerDownY = 0
+
+    // Pinch-to-zoom 變數
+    let initialPinchDistance = 0
+    let initialZoom = 1
 
     this.input.on('pointerdown', (pointer: Phaser.Input.Pointer) => {
+      // 右鍵拖曳（桌面）
       if (pointer.rightButtonDown()) {
         isDragging = true
         dragStartX = pointer.x
         dragStartY = pointer.y
       }
+      // 左鍵/觸控（手機單指）
+      else if (this.input.pointer1.isDown === false) {
+        // 記錄 pointer down 時間和位置，用於判斷是點擊還是拖曳
+        pointerDownTime = this.time.now
+        pointerDownX = pointer.x
+        pointerDownY = pointer.y
+      }
+      // 雙指觸控（pinch-to-zoom）
+      else if (this.input.pointer1.isDown && this.input.pointer2.isDown) {
+        const p1 = this.input.pointer1
+        const p2 = this.input.pointer2
+        const dx = p1.x - p2.x
+        const dy = p1.y - p2.y
+        initialPinchDistance = Math.sqrt(dx * dx + dy * dy)
+        initialZoom = camera.zoom
+      }
     })
 
     this.input.on('pointermove', (pointer: Phaser.Input.Pointer) => {
+      // 右鍵拖曳（桌面）
       if (isDragging) {
         camera.scrollX -= (pointer.x - dragStartX)
         camera.scrollY -= (pointer.y - dragStartY)
         dragStartX = pointer.x
         dragStartY = pointer.y
       }
+      // 雙指縮放（手機）
+      else if (this.input.pointer1.isDown && this.input.pointer2.isDown) {
+        const p1 = this.input.pointer1
+        const p2 = this.input.pointer2
+        const dx = p1.x - p2.x
+        const dy = p1.y - p2.y
+        const currentDistance = Math.sqrt(dx * dx + dy * dy)
+        
+        if (initialPinchDistance > 0) {
+          const scale = currentDistance / initialPinchDistance
+          const newZoom = Phaser.Math.Clamp(initialZoom * scale, 0.5, 2)
+          camera.setZoom(newZoom)
+        }
+      }
+      // 單指拖曳平移（手機）
+      else if (pointer.isDown && !pointer.rightButtonDown() && this.input.pointer1.isDown === false) {
+        const timeSinceDown = this.time.now - pointerDownTime
+        const dx = pointer.x - pointerDownX
+        const dy = pointer.y - pointerDownY
+        const distanceMoved = Math.sqrt(dx * dx + dy * dy)
+
+        // 如果超過 200ms 或移動超過 10px，視為拖曳（而非點擊）
+        if (timeSinceDown > 200 || distanceMoved > 10) {
+          if (!isDragging) {
+            isDragging = true
+            dragStartX = pointer.x
+            dragStartY = pointer.y
+          } else {
+            camera.scrollX -= (pointer.x - dragStartX)
+            camera.scrollY -= (pointer.y - dragStartY)
+            dragStartX = pointer.x
+            dragStartY = pointer.y
+          }
+        }
+      }
     })
 
     this.input.on('pointerup', () => {
       isDragging = false
+      initialPinchDistance = 0
     })
 
+    // 滾輪縮放（桌面）
     this.input.on('wheel', (_pointer: Phaser.Input.Pointer, _gameObjects: any[], _deltaX: number, deltaY: number) => {
       const zoomDelta = deltaY > 0 ? -0.1 : 0.1
       const newZoom = Phaser.Math.Clamp(camera.zoom + zoomDelta, 0.5, 2)
@@ -907,6 +985,8 @@ export class OfficeScene extends Phaser.Scene {
 
   // ─── Title ─────────────────────────────────────────────
   private addTitle() {
+    const isMobile = /Mobi|Android|iPhone/i.test(navigator.userAgent) || 'ontouchstart' in window
+    
     this.add.text(640, 30, 'William AI Office - Phase 5', {
       fontSize: '24px',
       fontStyle: 'bold',
@@ -915,7 +995,11 @@ export class OfficeScene extends Phaser.Scene {
       strokeThickness: 4
     }).setOrigin(0.5).setScrollFactor(0)
 
-    this.add.text(640, 60, '點擊 Agent 開始對話 | 右鍵拖曳平移 | 滾輪縮放 | ESC 關閉對話', {
+    const hintText = isMobile 
+      ? '點擊 Agent 對話 | 拖曳平移 | 雙指縮放'
+      : '點擊 Agent 開始對話 | 右鍵拖曳平移 | 滾輪縮放 | ESC 關閉對話'
+    
+    this.add.text(640, 60, hintText, {
       fontSize: '14px',
       color: '#cccccc'
     }).setOrigin(0.5).setScrollFactor(0)
@@ -966,20 +1050,25 @@ export class OfficeScene extends Phaser.Scene {
   }
 
   private createMuteButton() {
-    const container = this.add.container(1230, 30)
+    const isMobile = this.cameras.main.width < 768
+    const btnSize = isMobile ? 56 : 50  // 手機上加大到 56px（超過 44px 觸控最低標準）
+    const iconSize = isMobile ? '30px' : '28px'
+    const posX = isMobile ? this.cameras.main.width - 66 : 1230
+    
+    const container = this.add.container(posX, 30)
     
     const bg = this.add.graphics()
     bg.fillStyle(0x000000, 0.7)
-    bg.fillRoundedRect(0, 0, 50, 50, 8)
+    bg.fillRoundedRect(0, 0, btnSize, btnSize, 8)
     bg.lineStyle(2, 0xffffff, 0.5)
-    bg.strokeRoundedRect(0, 0, 50, 50, 8)
+    bg.strokeRoundedRect(0, 0, btnSize, btnSize, 8)
 
-    const icon = this.add.text(25, 25, '🔊', {
-      fontSize: '28px'
+    const icon = this.add.text(btnSize / 2, btnSize / 2, '🔊', {
+      fontSize: iconSize
     }).setOrigin(0.5)
 
     container.add([bg, icon])
-    container.setInteractive(new Phaser.Geom.Rectangle(0, 0, 50, 50), Phaser.Geom.Rectangle.Contains)
+    container.setInteractive(new Phaser.Geom.Rectangle(0, 0, btnSize, btnSize), Phaser.Geom.Rectangle.Contains)
     container.setScrollFactor(0)
 
     container.on('pointerdown', () => {
