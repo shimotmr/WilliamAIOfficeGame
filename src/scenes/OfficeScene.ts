@@ -102,7 +102,7 @@ export class OfficeScene extends Phaser.Scene {
       this.stateManager = new AgentStateManager(agentIds)
       
       this.cameras.main.setBackgroundColor('#1a1410')
-      this.createIsometricFloor()
+      this.createTilemapFloor()  // NEW: Use Tiled map for floor
       this.createCarpets()
       this.createWalls()
       this.createPartitions()
@@ -233,33 +233,38 @@ export class OfficeScene extends Phaser.Scene {
     // Animations handled by tweens in WorkstationDecorations
   }
 
-  // ─── Floor (warm wood tones) ───────────────────────────
-  private createIsometricFloor() {
-    const graphics = this.add.graphics()
-    const offsetX = 640
-    const offsetY = 100
-
-    for (let y = 0; y < this.MAP_HEIGHT; y++) {
-      for (let x = 0; x < this.MAP_WIDTH; x++) {
-        const screenX = (x - y) * (this.TILE_WIDTH / 2) + offsetX
-        const screenY = (x + y) * (this.TILE_HEIGHT / 2) + offsetY
-
-        const isDark = (x + y) % 2 === 0
-        graphics.fillStyle(isDark ? 0x8B6B4A : 0x9E7B5A, 1)
-
-        graphics.beginPath()
-        graphics.moveTo(screenX, screenY)
-        graphics.lineTo(screenX + this.TILE_WIDTH / 2, screenY + this.TILE_HEIGHT / 2)
-        graphics.lineTo(screenX, screenY + this.TILE_HEIGHT)
-        graphics.lineTo(screenX - this.TILE_WIDTH / 2, screenY + this.TILE_HEIGHT / 2)
-        graphics.closePath()
-        graphics.fillPath()
-
-        graphics.lineStyle(1, 0xA08060, 0.2)
-        graphics.strokePath()
-      }
+  // ─── Floor (Tiled Map) ─────────────────────────────────
+  private createTilemapFloor() {
+    // Load the Tiled map
+    const map = this.make.tilemap({ key: 'office' })
+    const tileset = map.addTilesetImage('office-tiles', 'office-tiles')
+    
+    if (!tileset) {
+      console.error('[OfficeScene] Failed to load tileset')
+      return
+    }
+    
+    // Validate map dimensions
+    if (map.width !== this.MAP_WIDTH || map.height !== this.MAP_HEIGHT) {
+      console.warn(`[OfficeScene] Map size mismatch: expected ${this.MAP_WIDTH}x${this.MAP_HEIGHT}, got ${map.width}x${map.height}`)
+    }
+    
+    // Create floor layer
+    const floorLayer = map.createLayer('floor', tileset)
+    if (floorLayer) {
+      floorLayer.setDepth(-10)  // Behind everything
+      console.log('[OfficeScene] Floor layer created from Tiled map')
+    }
+    
+    // Create walls layer (if exists)
+    const wallsLayer = map.createLayer('walls', tileset)
+    if (wallsLayer) {
+      wallsLayer.setDepth(5)  // Above floor, below agents
+      console.log('[OfficeScene] Walls layer created from Tiled map')
     }
   }
+
+  // Old createIsometricFloor() method removed - now using Tiled map
 
   // ─── Carpets (agent theme color, very light) ───────────
   private createCarpets() {

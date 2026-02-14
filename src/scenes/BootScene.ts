@@ -108,6 +108,10 @@ export class BootScene extends Phaser.Scene {
     this.load.audio('click', 'audio/click.wav')
     this.load.audio('dialogue-open', 'audio/dialogue-open.wav')
     this.load.audio('typewriter', 'audio/typewriter.wav')
+
+    // 載入 Tiled map 和 tileset
+    this.load.tilemapTiledJSON('office', 'maps/office.json')
+    this.load.image('office-tiles', 'tilesets/office-tileset.png')
   }
 
   create() {
