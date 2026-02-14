@@ -55,9 +55,7 @@ export class OfficeScene extends Phaser.Scene {
   private dialogueNameBg?: Phaser.GameObjects.Graphics
   private continueHint?: Phaser.GameObjects.Text
 
-  // Floating particle objects
-  private travisParticles: { x: number; y: number; vy: number; alpha: number; obj: Phaser.GameObjects.Arc }[] = []
-  private analystDigits: { obj: Phaser.GameObjects.Text; vy: number; life: number }[] = []
+  // (Particles moved to WorkstationDecorations)
 
   constructor() {
     super('OfficeScene')
@@ -81,13 +79,10 @@ export class OfficeScene extends Phaser.Scene {
     this.addTitle()
     this.createDialogueBox()
     this.setupDialogueInput()
-    this.createTravisParticles()
-    this.createAnalystDigits()
   }
 
-  update(_time: number, delta: number) {
-    this.updateTravisParticles(delta)
-    this.updateAnalystDigits(delta)
+  update(_time: number, _delta: number) {
+    // Animations handled by tweens in WorkstationDecorations
   }
 
   // ─── Floor (warm wood tones) ───────────────────────────
@@ -188,10 +183,9 @@ export class OfficeScene extends Phaser.Scene {
     const entrancePos = this.isoToScreen(1, 12)
     drawEntranceArea(this, entrancePos.x, entrancePos.y)
 
-    // Potted plants scattered along walkways
+    // 4 potted plants scattered
     const plantPositions = [
-      { x: 6, y: 6 }, { x: 18, y: 4 }, { x: 4, y: 18 },
-      { x: 20, y: 18 }, { x: 14, y: 14 }, { x: 10, y: 10 },
+      { x: 6, y: 6 }, { x: 18, y: 4 }, { x: 4, y: 18 }, { x: 20, y: 18 },
     ]
     plantPositions.forEach(p => {
       const pos = this.isoToScreen(p.x, p.y)
@@ -286,73 +280,6 @@ export class OfficeScene extends Phaser.Scene {
           padding: { x: 6, y: 3 }
         }
       ).setOrigin(0.5)
-    })
-  }
-
-  // ─── Travis floating blue particles ────────────────────
-  private createTravisParticles() {
-    const travisAgent = AGENTS.find(a => a.id === 'travis')!
-    const pos = this.isoToScreen(travisAgent.position.x, travisAgent.position.y)
-    for (let i = 0; i < 12; i++) {
-      const px = pos.x + Phaser.Math.Between(-60, 60)
-      const py = pos.y + Phaser.Math.Between(-50, 30)
-      const dot = this.add.circle(px, py, Phaser.Math.Between(1, 3), 0x4488FF, 0.5)
-      this.travisParticles.push({
-        x: px, y: py,
-        vy: -0.1 - Math.random() * 0.15,
-        alpha: 0.3 + Math.random() * 0.5,
-        obj: dot
-      })
-    }
-  }
-
-  private updateTravisParticles(delta: number) {
-    const travisAgent = AGENTS.find(a => a.id === 'travis')!
-    const pos = this.isoToScreen(travisAgent.position.x, travisAgent.position.y)
-    this.travisParticles.forEach(p => {
-      p.y += p.vy * delta * 0.05
-      p.alpha += Math.sin(Date.now() * 0.002 + p.x) * 0.01
-      if (p.y < pos.y - 70) {
-        p.y = pos.y + 30
-        p.x = pos.x + Phaser.Math.Between(-60, 60)
-      }
-      p.obj.setPosition(p.x, p.y)
-      p.obj.setAlpha(Phaser.Math.Clamp(p.alpha, 0.1, 0.7))
-    })
-  }
-
-  // ─── Analyst floating green digits ─────────────────────
-  private createAnalystDigits() {
-    const analystAgent = AGENTS.find(a => a.id === 'analyst')!
-    const pos = this.isoToScreen(analystAgent.position.x, analystAgent.position.y)
-    for (let i = 0; i < 8; i++) {
-      this.spawnAnalystDigit(pos)
-    }
-  }
-
-  private spawnAnalystDigit(pos: { x: number; y: number }) {
-    const digit = this.add.text(
-      pos.x + Phaser.Math.Between(-35, 15),
-      pos.y + Phaser.Math.Between(-60, -30),
-      String(Phaser.Math.Between(0, 9)),
-      { fontSize: '10px', color: '#00FF00', fontFamily: 'monospace' }
-    ).setAlpha(0.6)
-    this.analystDigits.push({ obj: digit, vy: -0.3 - Math.random() * 0.3, life: Math.random() * 3000 })
-  }
-
-  private updateAnalystDigits(delta: number) {
-    const analystAgent = AGENTS.find(a => a.id === 'analyst')!
-    const pos = this.isoToScreen(analystAgent.position.x, analystAgent.position.y)
-    this.analystDigits.forEach(d => {
-      d.life -= delta
-      d.obj.y += d.vy * delta * 0.05
-      d.obj.setAlpha(Phaser.Math.Clamp(d.life / 1500, 0, 0.7))
-      if (d.life <= 0) {
-        d.obj.setPosition(pos.x + Phaser.Math.Between(-35, 15), pos.y - 30)
-        d.obj.setText(String(Phaser.Math.Between(0, 9)))
-        d.obj.setAlpha(0.6)
-        d.life = 2000 + Math.random() * 2000
-      }
     })
   }
 
