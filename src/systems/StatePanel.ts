@@ -1,5 +1,5 @@
 import Phaser from 'phaser'
-import { AgentStateManager, MOOD_EMOJI, ACTIVITY_NAMES, AgentState } from './AgentStateManager'
+import { AgentStateManager, MOOD_EMOJI, ACTIVITY_NAMES } from './AgentStateManager'
 import { AGENTS } from '../config/agents'
 
 export class StatePanel {
@@ -149,7 +149,7 @@ export class StatePanel {
     // Enable dragging
     this.scene.input.setDraggable(this.background)
     
-    this.scene.input.on('drag', (pointer: Phaser.Input.Pointer, gameObject: Phaser.GameObjects.GameObject, dragX: number, dragY: number) => {
+    this.scene.input.on('drag', (_pointer: Phaser.Input.Pointer, gameObject: Phaser.GameObjects.GameObject, dragX: number, dragY: number) => {
       if (gameObject === this.background) {
         this.container.setPosition(dragX, dragY)
       }

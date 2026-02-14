@@ -32,7 +32,6 @@ export class AgentMovement {
     }
 
     return new Promise((resolve) => {
-      const startScreen = isoToScreen(this.agent.position.x, this.agent.position.y)
       const targetScreen = isoToScreen(targetIso.x, targetIso.y)
 
       this.isMoving = true
@@ -81,7 +80,7 @@ export class AgentMovement {
   /**
    * Return agent to original workstation
    */
-  returnToWorkstation(duration = 2000): Promise<void> {
+  returnToWorkstation(_duration = 2000): Promise<void> {
     // Note: we should store the original position, for now we use current agent.position
     // as it's updated by moveTo
     return Promise.resolve()

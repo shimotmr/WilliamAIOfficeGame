@@ -6,13 +6,14 @@ import {
   drawDesignerDecorations, drawAnalystDecorations, drawWalls,
   drawConferenceTable, drawPartition,
   drawLoungeArea, drawKitchenArea, drawEntranceArea, drawPottedPlantDecor
+  // createRippleEffect, bounceAnimation - unused Phase 4 functions
 } from './WorkstationDecorations'
 import { getRandomDialogue, getStatusInfo, getStateBasedDialogue } from '../config/dialogues'
 import { AgentStateManager, MOOD_COLORS } from '../systems/AgentStateManager'
 import { StatePanel } from '../systems/StatePanel'
 import { AgentMovement } from '../systems/AgentMovement'
 import { EventSystem } from '../systems/EventSystem'
-import { SpeechBubbleSystem, NotificationSystem, createRippleEffect, bounceAnimation } from '../systems/UIEffects'
+import { SpeechBubbleSystem, NotificationSystem, createRippleEffect } from '../systems/UIEffects'
 import { getRandomNotification } from '../data/notifications'
 
 const DECORATION_MAP: Record<string, (scene: Phaser.Scene, x: number, y: number) => Phaser.GameObjects.Graphics> = {
@@ -789,6 +790,9 @@ export class OfficeScene extends Phaser.Scene {
 
     const color = parseInt(agent.color.replace('#', ''), 16)
     const pos = this.isoToScreen(agent.position.x, agent.position.y)
+    
+    // Add ripple effect (Phase 6)
+    createRippleEffect(this, pos.x, pos.y, color)
     const w = this.TILE_WIDTH * 3
     const h = this.TILE_HEIGHT * 3
     const flash = this.add.graphics()
@@ -862,11 +866,24 @@ export class OfficeScene extends Phaser.Scene {
     this.currentCharIndex = 0
 
     this.dialogueBox.setY(camH + 20)
+    this.dialogueBox.setScale(0)
     this.tweens.add({
       targets: this.dialogueBox,
       y: camH - boxH,
+      scaleX: 1.05,
+      scaleY: 1.05,
       duration: 200,
-      ease: 'Back.easeOut'
+      ease: 'Back.easeOut',
+      onComplete: () => {
+        // Settle to normal scale
+        this.tweens.add({
+          targets: this.dialogueBox,
+          scaleX: 1,
+          scaleY: 1,
+          duration: 100,
+          ease: 'Sine.easeOut'
+        })
+      }
     })
 
     this.showPortrait(agent)
@@ -1317,6 +1334,16 @@ export class OfficeScene extends Phaser.Scene {
       this.sound.mute = true
     } else {
       this.sound.mute = false
+    }
+  }
+
+  // ─── Cleanup (Phase 5) ─────────────────────────────────
+  shutdown() {
+    if (this.stateManager) {
+      this.stateManager.destroy()
+    }
+    if (this.statePanel) {
+      this.statePanel.destroy()
     }
   }
 }

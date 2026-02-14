@@ -1,5 +1,5 @@
 import Phaser from 'phaser'
-import { AgentConfig, AGENTS } from '../config/agents'
+import { AGENTS } from '../config/agents'
 import { AgentMovement } from './AgentMovement'
 import { isoToScreen } from '../utils/isometric'
 
@@ -24,7 +24,6 @@ interface OfficeEvent {
 export class EventSystem {
   private scene: Phaser.Scene
   private agentMovements: Map<string, AgentMovement>
-  private agentContainers: Map<string, Phaser.GameObjects.Container>
   private onNotification: (message: string) => void
   private onSpeechBubble: (agentId: string, text: string, duration?: number) => void
   private eventTimer?: Phaser.Time.TimerEvent
@@ -40,7 +39,6 @@ export class EventSystem {
   constructor(config: EventSystemConfig) {
     this.scene = config.scene
     this.agentMovements = config.agentMovements
-    this.agentContainers = config.agentContainers
     this.onNotification = config.onNotification
     this.onSpeechBubble = config.onSpeechBubble
   }

@@ -92,7 +92,7 @@ export class AgentStateManager {
     if (!state) return
 
     // Update activity
-    const oldActivity = state.activity
+    const oldActivity: string = state.activity
     state.activity = this.randomActivity()
 
     // Update mood based on activity and energy
@@ -123,7 +123,8 @@ export class AgentStateManager {
     // Update task count
     if (state.activity === 'working') {
       state.taskCount = Math.max(0, state.taskCount + (Math.random() > 0.5 ? 1 : -1))
-    } else if (oldActivity === 'working' && state.activity !== 'working') {
+    }
+    if (oldActivity === 'working' && state.activity !== 'working') {
       state.taskCount = Math.max(0, state.taskCount - 1)
     }
 
