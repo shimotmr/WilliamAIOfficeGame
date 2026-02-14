@@ -527,11 +527,13 @@ export class OfficeScene extends Phaser.Scene {
         shadow: { offsetX: 1, offsetY: 1, color: '#000000', blur: 2, fill: true }
       }).setOrigin(0.5)
 
-      // Hit area
-      const hitZone = this.add.rectangle(btnW / 2, btnH / 2, btnW, btnH, 0x000000, 0)
-        .setInteractive({ useHandCursor: true })
+      container.add([bg, label])
 
-      hitZone.on('pointerover', () => {
+      // Set interactive on container itself
+      container.setSize(btnW, btnH)
+      container.setInteractive({ useHandCursor: true })
+
+      container.on('pointerover', () => {
         container.setScale(1.08)
         bg.clear()
         bg.fillStyle(0xFF2222, 1)
@@ -541,7 +543,7 @@ export class OfficeScene extends Phaser.Scene {
         bg.beginPath(); bg.moveTo(8, 0); bg.lineTo(btnW, 0); bg.lineTo(btnW - 8, btnH); bg.lineTo(0, btnH); bg.closePath()
         bg.strokePath()
       })
-      hitZone.on('pointerout', () => {
+      container.on('pointerout', () => {
         container.setScale(1)
         bg.clear()
         bg.fillStyle(0xCC0000, 0.9)
@@ -551,9 +553,7 @@ export class OfficeScene extends Phaser.Scene {
         bg.beginPath(); bg.moveTo(8, 0); bg.lineTo(btnW, 0); bg.lineTo(btnW - 8, btnH); bg.lineTo(0, btnH); bg.closePath()
         bg.strokePath()
       })
-      hitZone.on('pointerdown', () => this.onOptionSelect(opt.action))
-
-      container.add([bg, label, hitZone])
+      container.on('pointerdown', () => this.onOptionSelect(opt.action))
 
       // Slide in from right
       this.tweens.add({
